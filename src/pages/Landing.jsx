@@ -42,6 +42,9 @@ export default function Landing() {
                 Sign in
               </Button>
             </Link>
+            <Link to="/register" className="hidden md:inline-flex">
+              <Button size="sm">Get started</Button>
+            </Link>
           </div>
         </div>
       </header>
