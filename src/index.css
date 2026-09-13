@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+@import './themes.css';
+
+/* Map LifeClues theme variables to Tailwind utilities.
+   Because each theme/mode sets these via CSS custom properties on
+   <html data-theme / data-mode>, the utilities like `bg-paper`,
+   `text-ink`, `border-line` switch automatically with the theme. */
+@theme inline {
+  --color-paper: var(--lc-paper);
+  --color-surface: var(--lc-surface);
+  --color-surface-2: var(--lc-surface-2);
+  --color-ink: var(--lc-ink);
+  --color-ink-soft: var(--lc-ink-soft);
+  --color-ink-faint: var(--lc-ink-faint);
+  --color-line: var(--lc-line);
+  --color-line-strong: var(--lc-line-strong);
+  --color-accent: var(--lc-accent);
+  --color-accent-hover: var(--lc-accent-hover);
+  --color-accent-ink: var(--lc-accent-ink);
+  --color-accent-soft: var(--lc-accent-soft);
+  --color-danger: var(--lc-danger);
+  --color-danger-soft: var(--lc-danger-soft);
+  --color-danger-ink: var(--lc-danger-ink);
+  --color-scanlines: var(--lc-scanlines);
+
+  --font-display: var(--lc-font-display);
+  --font-sans: var(--lc-font-sans);
+
+  --radius-soft: var(--lc-radius-soft);
+  --radius-card: var(--lc-radius-card);
+  --radius-pill: var(--lc-radius-pill);
+
+  --shadow-soft: var(--lc-shadow-soft);
+  --shadow-card: var(--lc-shadow-card);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html[data-mode='dark'] {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--lc-paper);
+    color: var(--lc-ink);
+    font-family: var(--lc-font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  ::selection {
+    background: var(--lc-accent-soft);
+    color: var(--lc-ink);
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+/* Keep theme-aware surfaces animating smoothly when switching. */
+.lc-themed {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
+}

@@ -1,0 +1,147 @@
+/* ============================================================
+   LifeClues theme tokens
+   Three themes (paper, indigo, green) x two modes (light, dark)
+   Switched at runtime via data-theme / data-mode on <html>.
+   The values below feed Tailwind tokens (see index.css).
+   ============================================================ */
+
+:root {
+  --lc-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --lc-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --lc-radius-soft: 14px;
+  --lc-radius-card: 20px;
+  --lc-radius-pill: 999px;
+}
+
+/* ---------------- THEME: Paper & Book (default) ---------------- */
+
+[data-theme='paper'] {
+  --lc-paper: #f7f1e5;
+  --lc-surface: #fffcf4;
+  --lc-surface-2: #f1e9d9;
+  --lc-ink: #2d251d;
+  --lc-ink-soft: #6e5f4e;
+  --lc-ink-faint: #a5967f;
+  --lc-line: #e8ddc8;
+  --lc-line-strong: #d9cbb0;
+  --lc-accent: #b25e38;
+  --lc-accent-hover: #9c4f2e;
+  --lc-accent-ink: #fff7ea;
+  --lc-accent-soft: #f0dccb;
+  --lc-danger: #b3402e;
+  --lc-danger-soft: #f5d9d2;
+  --lc-danger-ink: #7a2517;
+  --lc-scanlines: rgba(178, 94, 56, 0.05);
+  --lc-shadow-soft: 0 1px 2px rgba(60, 40, 20, 0.06);
+  --lc-shadow-card: 0 14px 40px -18px rgba(60, 40, 20, 0.22);
+}
+
+[data-theme='paper'][data-mode='dark'] {
+  --lc-paper: #181410;
+  --lc-surface: #211c15;
+  --lc-surface-2: #2a241b;
+  --lc-ink: #efe7d9;
+  --lc-ink-soft: #b8a98f;
+  --lc-ink-faint: #7e7261;
+  --lc-line: #3a3227;
+  --lc-line-strong: #4a4134;
+  --lc-accent: #dc8f57;
+  --lc-accent-hover: #e7a26e;
+  --lc-accent-ink: #261708;
+  --lc-accent-soft: #3c2b1d;
+  --lc-danger: #e2695a;
+  --lc-danger-soft: #43221d;
+  --lc-danger-ink: #f2b1a7;
+  --lc-scanlines: rgba(220, 143, 87, 0.04);
+  --lc-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lc-shadow-card: 0 16px 44px -18px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------------- THEME: Modern Minimal (indigo) ---------------- */
+
+[data-theme='indigo'] {
+  --lc-font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --lc-paper: #f5f6fa;
+  --lc-surface: #ffffff;
+  --lc-surface-2: #eef0f6;
+  --lc-ink: #1f2430;
+  --lc-ink-soft: #555d70;
+  --lc-ink-faint: #8e95a6;
+  --lc-line: #e4e7ef;
+  --lc-line-strong: #cfd4e0;
+  --lc-accent: #4f46e5;
+  --lc-accent-hover: #4338c9;
+  --lc-accent-ink: #ffffff;
+  --lc-accent-soft: #e6e8fc;
+  --lc-danger: #dc2626;
+  --lc-danger-soft: #fce8e7;
+  --lc-danger-ink: #991b1b;
+  --lc-scanlines: rgba(79, 70, 229, 0.045);
+  --lc-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --lc-shadow-card: 0 14px 40px -18px rgba(15, 23, 42, 0.18);
+}
+
+[data-theme='indigo'][data-mode='dark'] {
+  --lc-paper: #0e1016;
+  --lc-surface: #161923;
+  --lc-surface-2: #1e2230;
+  --lc-ink: #e8eaf2;
+  --lc-ink-soft: #a9b0c3;
+  --lc-ink-faint: #6c7387;
+  --lc-line: #282d3b;
+  --lc-line-strong: #363c4d;
+  --lc-accent: #7c82f6;
+  --lc-accent-hover: #9499fb;
+  --lc-accent-ink: #141636;
+  --lc-accent-soft: #262946;
+  --lc-danger: #f0685c;
+  --lc-danger-soft: #38201d;
+  --lc-danger-ink: #fa9a90;
+  --lc-scanlines: rgba(124, 130, 246, 0.045);
+  --lc-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lc-shadow-card: 0 16px 44px -18px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------- THEME: Earthy Calm (green) ---------------- */
+
+[data-theme='green'] {
+  --lc-paper: #f4f2e6;
+  --lc-surface: #fbf9ee;
+  --lc-surface-2: #ecead4;
+  --lc-ink: #24301f;
+  --lc-ink-soft: #5e6b52;
+  --lc-ink-faint: #93a07f;
+  --lc-line: #e1e3c9;
+  --lc-line-strong: #d0d3ae;
+  --lc-accent: #41693c;
+  --lc-accent-hover: #35592f;
+  --lc-accent-ink: #f4f8e9;
+  --lc-accent-soft: #e2ead0;
+  --lc-danger: #a03a2b;
+  --lc-danger-soft: #f2d6cc;
+  --lc-danger-ink: #722318;
+  --lc-scanlines: rgba(65, 105, 60, 0.05);
+  --lc-shadow-soft: 0 1px 2px rgba(30, 50, 20, 0.06);
+  --lc-shadow-card: 0 14px 40px -18px rgba(30, 50, 20, 0.2);
+}
+
+[data-theme='green'][data-mode='dark'] {
+  --lc-paper: #11150d;
+  --lc-surface: #1a2012;
+  --lc-surface-2: #232a19;
+  --lc-ink: #eaedda;
+  --lc-ink-soft: #b3bc9e;
+  --lc-ink-faint: #78826a;
+  --lc-line: #2c3522;
+  --lc-line-strong: #3a452c;
+  --lc-accent: #8fae70;
+  --lc-accent-hover: #a0bc83;
+  --lc-accent-ink: #161f0b;
+  --lc-accent-soft: #2e3921;
+  --lc-danger: #de7660;
+  --lc-danger-soft: #3a231b;
+  --lc-danger-ink: #f5b0a3;
+  --lc-scanlines: rgba(143, 174, 112, 0.05);
+  --lc-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lc-shadow-card: 0 16px 44px -18px rgba(0, 0, 0, 0.5);
+}
