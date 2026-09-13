@@ -6,6 +6,7 @@ import AppShell from './ui/AppShell'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import CheckEmail from './pages/CheckEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import VerifyEmail from './pages/VerifyEmail'
@@ -36,6 +37,14 @@ function App() {
               element={
                 <GuestOnlyRoute>
                   <Register />
+                </GuestOnlyRoute>
+              }
+            />
+            <Route
+              path="/check-email"
+              element={
+                <GuestOnlyRoute>
+                  <CheckEmail />
                 </GuestOnlyRoute>
               }
             />

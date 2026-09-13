@@ -43,3 +43,41 @@ export const accountApi = {
     return api.post('/api/me/change-password', { currentPassword, newPassword })
   },
 }
+
+export const memoryApi = {
+  list({ limit = 50, offset = 0 } = {}) {
+    return api.get(`/api/memories?limit=${limit}&offset=${offset}`)
+  },
+
+  listTrashed({ limit = 50, offset = 0 } = {}) {
+    return api.get(`/api/memories/trash?limit=${limit}&offset=${offset}`)
+  },
+
+  create(payload) {
+    return api.post('/api/memories', payload)
+  },
+
+  update(id, payload) {
+    return api.put(`/api/memories/${id}`, payload)
+  },
+
+  changeStatus(id, status) {
+    return api.patch(`/api/memories/${id}/status`, { status })
+  },
+
+  trash(id) {
+    return api.del(`/api/memories/${id}`)
+  },
+
+  restore(id) {
+    return api.post(`/api/memories/${id}/restore`)
+  },
+
+  permanentDelete(id) {
+    return api.del(`/api/memories/${id}/permanent`)
+  },
+
+  emptyTrash() {
+    return api.del('/api/memories/trash')
+  },
+}

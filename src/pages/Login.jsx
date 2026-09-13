@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
+import { authApi } from '../api/client'
 import AuthLayout from '../ui/AuthLayout'
 import Button from '../ui/Button'
 import Alert from '../ui/Alert'
 import { Field, TextField } from '../ui/Field'
 import { ApiError } from '../api/http'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function Login() {
   const { login } = useAuth()
@@ -18,11 +21,28 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [needsVerify, setNeedsVerify] = useState(false)
+  const [resend, setResend] = useState({ state: 'idle', message: '' })
   const [loading, setLoading] = useState(false)
+
+  const handleResend = async () => {
+    setResend({ state: 'sending', message: '' })
+    try {
+      await authApi.resendVerification(loginField.trim())
+      setResend({ state: 'done', message: 'A fresh link is on its way — check your inbox.' })
+    } catch (err) {
+      setResend({
+        state: 'error',
+        message: err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
+      })
+    }
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    setNeedsVerify(false)
+    setResend({ state: 'idle', message: '' })
 
     if (!loginField.trim() || !password) {
       setError('Please enter your email or username, and your password.')
@@ -36,6 +56,7 @@ export default function Login() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)
+        setNeedsVerify(err.message.toLowerCase().includes('verify your email'))
       } else {
         setError('Something went wrong. Please try again.')
       }
@@ -58,6 +79,26 @@ export default function Login() {
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         {error && <Alert variant="error">{error}</Alert>}
+
+        {needsVerify && EMAIL_RE.test(loginField.trim()) && (
+          <div className="text-right">
+            {resend.state === 'done' ? (
+              <p className="text-xs font-medium text-accent">{resend.message}</p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resend.state === 'sending'}
+                className="text-xs font-semibold text-accent transition-colors hover:underline disabled:opacity-60"
+              >
+                {resend.state === 'sending' ? 'Sending…' : 'Resend verification email'}
+              </button>
+            )}
+            {resend.state === 'error' && (
+              <p className="text-xs text-danger">{resend.message}</p>
+            )}
+          </div>
+        )}
 
         <TextField
           label="Email or username"

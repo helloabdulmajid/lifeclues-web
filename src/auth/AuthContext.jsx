@@ -59,15 +59,21 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(
     async ({ email, username, password, displayName }) => {
-      await authApi.register({ email, username, password, displayName })
-      const auth = await authApi.login({ login: username, password })
-      tokenStore.save(auth)
-      setUser(auth.user)
-      setStatus('authenticated')
-      return auth.user
+      const user = await authApi.register({ email, username, password, displayName })
+      // Registration does NOT sign the user in: they must confirm their email
+      // first. `user.email` feeds the "check your inbox" screen.
+      return { user, email: user.email }
     },
     [],
   )
+
+  const verifyEmail = useCallback(async (token) => {
+    const auth = await authApi.verifyEmail(token)
+    tokenStore.save(auth)
+    setUser(auth.user)
+    setStatus('authenticated')
+    return auth.user
+  }, [])
 
   const logout = useCallback(async () => {
     const refreshToken = tokenStore.refreshToken()
@@ -92,10 +98,11 @@ export function AuthProvider({ children }) {
       isAuthenticated: status === 'authenticated',
       login,
       register,
+      verifyEmail,
       logout,
       setProfile,
     }),
-    [user, status, login, register, logout, setProfile],
+    [user, status, login, register, verifyEmail, logout, setProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -66,13 +66,13 @@ export default function Register() {
 
     setLoading(true)
     try {
-      await register({
+      const { email } = await register({
         email: form.email.trim(),
         username: form.username.trim(),
         displayName: form.displayName.trim() || undefined,
         password: form.password,
       })
-      navigate('/app', { replace: true })
+      navigate('/check-email', { replace: true, state: { email } })
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
