@@ -13,6 +13,22 @@ export const authApi = {
     return api.post('/api/auth/logout', { refreshToken }, { auth: false })
   },
 
+  forgotPassword(email) {
+    return api.post('/api/auth/forgot-password', { email }, { auth: false })
+  },
+
+  resetPassword({ token, newPassword }) {
+    return api.post('/api/auth/reset-password', { token, newPassword }, { auth: false })
+  },
+
+  verifyEmail(token) {
+    return api.post('/api/auth/verify-email', { token }, { auth: false })
+  },
+
+  resendVerification(email) {
+    return api.post('/api/auth/resend-verification', { email }, { auth: false })
+  },
+
   me() {
     return api.get('/api/me')
   },

@@ -90,9 +90,12 @@ export default function Login() {
             </button>
           </div>
           <div className="text-right">
-            <span className="text-xs text-ink-faint">
-              Forgot your password? Contact support to reset it.
-            </span>
+            <Link
+              to="/forgot-password"
+              className="text-xs text-ink-faint transition-colors hover:text-accent"
+            >
+              Forgot your password?
+            </Link>
           </div>
         </Field>
 
