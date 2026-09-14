@@ -80,4 +80,8 @@ export const memoryApi = {
   emptyTrash() {
     return api.del('/api/memories/trash')
   },
+
+  listTags() {
+    return api.get('/api/tags')
+  },
 }

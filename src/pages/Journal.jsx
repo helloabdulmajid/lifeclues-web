@@ -11,6 +11,7 @@ import {
   Pin,
   RotateCcw,
   Search,
+  Tag,
   Trash2,
 } from 'lucide-react'
 import { memoryApi } from '../api/client'
@@ -20,7 +21,7 @@ import Alert from '../ui/Alert'
 import Spinner from '../ui/Spinner'
 import { Field } from '../ui/Field'
 
-const EMPTY_FORM = { eventDate: '', eventTime: '', title: '', content: '' }
+const EMPTY_FORM = { eventDate: '', eventTime: '', title: '', content: '', tags: [] }
 
 function todayString() {
   const d = new Date()
@@ -136,6 +137,15 @@ export default function Journal() {
   const hideTimerRef = useRef(null)
   const readSectionRef = useRef(null)
 
+  const [userTags, setUserTags] = useState([])
+  const [userTagsLoaded, setUserTagsLoaded] = useState(false)
+  const [userTagsLoading, setUserTagsLoading] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  const tagInputRef = useRef(null)
+  const tagEditorRef = useRef(null)
+  const [readTagsOpen, setReadTagsOpen] = useState(false)
+  const [editTagsOpen, setEditTagsOpen] = useState(false)
+
   const autoGrow = () => {
     const el = contentRef.current
     if (!el) return
@@ -152,6 +162,35 @@ export default function Journal() {
   useEffect(() => {
     if (editor) autoGrow()
   }, [editor])
+
+  useEffect(() => {
+    if ((editor !== null || viewing) && !userTagsLoaded && !userTagsLoading) {
+      setUserTagsLoading(true)
+      memoryApi.listTags()
+        .then((tags) => { setUserTags(tags); setUserTagsLoaded(true) })
+        .catch(() => {})
+        .finally(() => setUserTagsLoading(false))
+    }
+  }, [editor, viewing, userTagsLoaded, userTagsLoading])
+
+  useEffect(() => {
+    if (!editTagsOpen) return
+    const handleMouseDown = (e) => {
+      if (tagEditorRef.current && !tagEditorRef.current.contains(e.target)) {
+        const pending = (tagInputRef.current?.value || '').trim()
+        if (pending && pending.length <= 50) {
+          setForm((f) => {
+            if (f.tags.some((t) => t.toLowerCase() === pending.toLowerCase()) || f.tags.length >= 50) return f
+            return { ...f, tags: [...f.tags, pending] }
+          })
+          setTagInput('')
+        }
+        setEditTagsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [editTagsOpen])
 
   useEffect(() => {
     if (!viewing) return
@@ -256,11 +295,15 @@ export default function Journal() {
     setViewing(null)
     setForm({ ...EMPTY_FORM, eventDate: todayString() })
     setSaveError('')
+    setTagInput('')
+    setEditTagsOpen(false)
   }
 
   const openEditor = () => {
     setSaveError('')
     setViewing(null)
+    setTagInput('')
+    setEditTagsOpen(false)
     setEditor('new')
   }
 
@@ -268,21 +311,55 @@ export default function Journal() {
     setForm((f) => ({ ...f, [key]: event.target.value }))
   }
 
+  const tagSuggestions = tagInput.trim().length > 0
+    ? userTags.filter(
+        (t) =>
+          t.name.toLowerCase().includes(tagInput.trim().toLowerCase()) &&
+          !form.tags.some((existing) => existing.toLowerCase() === t.name.toLowerCase())
+      )
+    : []
+
+  const addTag = (name) => {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed.length > 50) return
+    if (form.tags.some((t) => t.toLowerCase() === trimmed.toLowerCase())) return
+    if (form.tags.length >= 50) return
+    setForm((f) => ({ ...f, tags: [...f.tags, trimmed] }))
+    setTagInput('')
+  }
+
+  const removeTag = (index) => {
+    setForm((f) => ({ ...f, tags: f.tags.filter((_, i) => i !== index) }))
+  }
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      addTag(tagInput)
+    } else if (e.key === 'Backspace' && tagInput === '' && form.tags.length > 0) {
+      removeTag(form.tags.length - 1)
+    }
+  }
+
   const startEdit = (memory) => {
     setEditor(memory.id)
     setViewing(null)
     setSaveError('')
+    setTagInput('')
+    setEditTagsOpen(false)
     setForm({
       eventDate: memory.eventDate,
       eventTime: memory.eventTime ? memory.eventTime.slice(0, 5) : '',
       title: memory.title ?? '',
       content: memory.content,
+      tags: memory.tags ? memory.tags.map((t) => t.name) : [],
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const viewMemory = (memory) => {
     setViewing(memory)
+    setReadTagsOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -295,6 +372,14 @@ export default function Journal() {
       setSaveError('Write a little something first.')
       return
     }
+    if (status === 'COMPLETED' && form.tags.length === 0) {
+      setSaveError('Add at least one tag before completing this memory.')
+      return
+    }
+    if (form.tags.length > 50) {
+      setSaveError('Maximum 50 tags per memory.')
+      return
+    }
     setSaving(true)
     setSavingAs(status)
     setSaveError('')
@@ -304,12 +389,22 @@ export default function Journal() {
       title: form.title.trim() || undefined,
       content: form.content.trim(),
       status,
+      tags: form.tags.length > 0 ? form.tags : undefined,
     }
     try {
       if (editor && editor !== 'new') {
         await memoryApi.update(editor, payload)
       } else {
         await memoryApi.create(payload)
+      }
+      const newTagNames = form.tags.filter(
+        (name) => !userTags.some((t) => t.name.toLowerCase() === name.toLowerCase())
+      )
+      if (newTagNames.length > 0) {
+        setUserTags((prev) =>
+          [...prev, ...newTagNames.map((name) => ({ id: name, name }))]
+            .sort((a, b) => a.name.localeCompare(b.name))
+        )
       }
       resetEditor()
       await loadMemories()
@@ -528,72 +623,139 @@ export default function Journal() {
       {saveError && <Alert variant="error" className="mb-5">{saveError}</Alert>}
 
       <div className="space-y-4">
-        <div
-          role="group"
-          aria-label="Event date and time"
-          className="flex flex-wrap items-baseline gap-x-2 font-display text-base text-ink sm:text-lg"
-        >
-          <div className="group relative inline-flex items-baseline">
-            <span
-              aria-hidden
-              className="cursor-pointer underline-offset-4 group-hover:underline group-focus-within:underline"
-            >
-              {formatLongDate(form.eventDate) || 'Add a date'}
-            </span>
-            <input
-              id="eventDate"
-              type="date"
-              required
-              tabIndex={0}
-              value={form.eventDate}
-              onChange={setField('eventDate')}
-              aria-label="Event date"
-              className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent p-0 opacity-0"
-              onMouseDown={(e) => {
-                e.preventDefault()
-                const el = e.currentTarget
-                el.focus()
-                if (typeof el.showPicker === 'function') {
-                  try {
-                    el.showPicker()
-                  } catch {
-                    el.focus()
+        <div className="flex flex-wrap items-baseline gap-x-2 font-display text-base text-ink sm:text-lg">
+          <div
+            role="group"
+            aria-label="Event date and time"
+            className="flex flex-wrap items-baseline gap-x-2"
+          >
+            <div className="group relative inline-flex items-baseline">
+              <span
+                aria-hidden
+                className="cursor-pointer underline-offset-4 group-hover:underline group-focus-within:underline"
+              >
+                {formatLongDate(form.eventDate) || 'Add a date'}
+              </span>
+              <input
+                id="eventDate"
+                type="date"
+                required
+                tabIndex={0}
+                value={form.eventDate}
+                onChange={setField('eventDate')}
+                aria-label="Event date"
+                className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent p-0 opacity-0"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  const el = e.currentTarget
+                  el.focus()
+                  if (typeof el.showPicker === 'function') {
+                    try { el.showPicker() } catch { el.focus() }
                   }
-                }
-              }}
-            />
-          </div>
-          {form.eventTime && <span className="text-ink-faint" aria-hidden>·</span>}
-          <div className="group relative inline-flex items-baseline">
-            <span
-              aria-hidden
-              className="cursor-pointer underline-offset-4 group-hover:underline group-focus-within:underline"
-            >
-              {form.eventTime ? formatTime(form.eventTime) : 'Add time'}
-            </span>
-            <input
-              id="eventTime"
-              type="time"
-              tabIndex={0}
-              value={form.eventTime}
-              onChange={setField('eventTime')}
-              aria-label="Event time"
-              className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent p-0 opacity-0"
-              onMouseDown={(e) => {
-                e.preventDefault()
-                const el = e.currentTarget
-                el.focus()
-                if (typeof el.showPicker === 'function') {
-                  try {
-                    el.showPicker()
-                  } catch {
-                    el.focus()
+                }}
+              />
+            </div>
+            {form.eventTime && <span className="text-ink-faint" aria-hidden>·</span>}
+            <div className="group relative inline-flex items-baseline">
+              <span
+                aria-hidden
+                className="cursor-pointer underline-offset-4 group-hover:underline group-focus-within:underline"
+              >
+                {form.eventTime ? formatTime(form.eventTime) : 'Add time'}
+              </span>
+              <input
+                id="eventTime"
+                type="time"
+                tabIndex={0}
+                value={form.eventTime}
+                onChange={setField('eventTime')}
+                aria-label="Event time"
+                className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent p-0 opacity-0"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  const el = e.currentTarget
+                  el.focus()
+                  if (typeof el.showPicker === 'function') {
+                    try { el.showPicker() } catch { el.focus() }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            </div>
           </div>
+          <span className="ms-auto flex items-center">
+            <button
+              type="button"
+              onClick={() => setEditTagsOpen((o) => !o)}
+              className={`flex size-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+                form.tags.length > 0
+                  ? 'text-accent hover:bg-accent-soft'
+                  : 'text-ink-faint hover:bg-surface-2 hover:text-ink'
+              }`}
+              title={editTagsOpen ? 'Hide tags' : 'Show tags'}
+              aria-label="Toggle tags"
+            >
+              <Tag className="size-4" aria-hidden />
+            </button>
+          </span>
         </div>
+
+        {editTagsOpen && (
+          <div ref={tagEditorRef} className="relative">
+            <div className="flex flex-wrap items-center gap-1.5 rounded-card border border-line bg-transparent px-3 py-2 lc-themed">
+              {form.tags.map((tag, i) => (
+                <span
+                  key={`${tag}-${i}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(i)}
+                    className="ml-0.5 text-accent/60 hover:text-accent"
+                    aria-label={`Remove ${tag}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              {form.tags.length < 50 && (
+                <input
+                  ref={tagInputRef}
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      const pending = (tagInputRef.current?.value || '').trim()
+                      if (pending && pending.length <= 50) {
+                        addTag(pending)
+                      }
+                    }, 0)
+                  }}
+                  placeholder={form.tags.length === 0 ? 'Add tags…' : ''}
+                  className="min-w-[120px] flex-1 bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+                />
+              )}
+            </div>
+            {tagSuggestions.length > 0 && (
+              <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-card border border-line bg-surface py-1 shadow-card lc-themed">
+                {tagSuggestions.slice(0, 10).map((t) => (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); addTag(t.name) }}
+                      onTouchStart={(e) => { e.preventDefault(); addTag(t.name) }}
+                      className="w-full px-3 py-1.5 text-left text-sm text-ink-soft hover:bg-surface-2 hover:text-ink"
+                    >
+                      {t.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         <Field
           id="title"
@@ -695,13 +857,36 @@ export default function Journal() {
           <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent lc-themed">
             <BookOpen className="size-5" aria-hidden />
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="font-display text-xl font-semibold text-ink">Read memory</h2>
-            <p className="text-xs text-ink-soft">
-              {formatLongDate(viewing.eventDate)}{viewing.eventTime ? ` · ${formatTime(viewing.eventTime)}` : ''}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-ink-soft">
+                {formatLongDate(viewing.eventDate)}{viewing.eventTime ? ` · ${formatTime(viewing.eventTime)}` : ''}
+              </p>
+              {viewing.tags?.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setReadTagsOpen((o) => !o)}
+                  className={`flex size-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    readTagsOpen
+                      ? 'text-accent hover:bg-accent-soft'
+                      : 'text-ink-faint hover:bg-surface-2 hover:text-ink'
+                  }`}
+                  title={readTagsOpen ? 'Hide tags' : 'Show tags'}
+                  aria-label="Toggle tags"
+                >
+                  <Tag className="size-4" aria-hidden />
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {readTagsOpen && viewing.tags?.length > 0 && (
+          <p className="mb-4 text-sm text-ink-faint">
+            {viewing.tags.map((t) => t.name).join(' · ')}
+          </p>
+        )}
 
         <div className="space-y-4">
           <h3 className="font-display text-2xl font-medium leading-tight text-ink sm:text-3xl">
