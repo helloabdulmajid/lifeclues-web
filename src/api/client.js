@@ -42,6 +42,10 @@ export const accountApi = {
   changePassword({ currentPassword, newPassword }) {
     return api.post('/api/me/change-password', { currentPassword, newPassword })
   },
+
+  deleteAccount() {
+    return api.del('/api/me')
+  },
 }
 
 export const memoryApi = {

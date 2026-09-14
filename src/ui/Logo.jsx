@@ -16,12 +16,13 @@ export default function Logo({ size = 'md', compact = false }) {
   return (
     <span className="inline-flex items-center gap-2">
       <span
-        className={`flex ${iconSizes[size]} shrink-0 items-center justify-center rounded-soft bg-accent text-accent-ink shadow-soft`}
+        className={`flex ${iconSizes[size]} shrink-0 items-center justify-center rounded-soft shadow-soft`}
+        style={{ backgroundColor: '#4a3728', color: '#fff7ea' }}
       >
         <BookOpenText className={`${iconSizes[size]} shrink-0`} aria-hidden />
       </span>
       <span
-        className={`whitespace-nowrap font-display font-semibold tracking-tight text-ink ${
+        className={`lc-logo-text whitespace-nowrap font-display font-semibold tracking-tight ${
           compact ? compactTextClass[size] : textClass[size]
         }`}
       >

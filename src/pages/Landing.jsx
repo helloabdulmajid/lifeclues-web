@@ -19,8 +19,8 @@ const features = [
   },
   {
     icon: Tag,
-    title: 'Rediscover by theme',
-    text: 'Every page can note who was there, where you were, and how it felt — so a whole season of your life can come back when you need it.',
+    title: 'Rediscover with clues',
+    text: 'Remember only a few details? Search the clues you remember — a place, person, college, company, or moment — and find the memory again.',
   },
   {
     icon: Lock,
@@ -34,7 +34,9 @@ export default function Landing() {
     <div className="flex min-h-dvh flex-col bg-paper">
       <header className="border-b border-line bg-paper/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:gap-3 sm:px-6">
-          <Logo compact />
+          <Link to="/">
+            <Logo compact />
+          </Link>
           <div className="flex items-center gap-2.5">
             <AppearanceMenu />
             <Link to="/login">
@@ -128,6 +130,11 @@ export default function Landing() {
             <PenLine className="size-4" aria-hidden />
             Small Clues. Big Memories.
           </span>
+          <nav className="flex items-center gap-4">
+            <Link to="/privacy" className="transition-colors hover:text-ink">Privacy Policy</Link>
+            <Link to="/terms" className="transition-colors hover:text-ink">Terms of Service</Link>
+            <Link to="/contact" className="transition-colors hover:text-ink">Contact Us</Link>
+          </nav>
           <span>© {new Date().getFullYear()} LifeClues</span>
         </div>
       </footer>

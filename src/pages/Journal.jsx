@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { memoryApi } from '../api/client'
 import { ApiError } from '../api/http'
+import { useAuth } from '../auth/AuthContext'
 import Button from '../ui/Button'
 import Alert from '../ui/Alert'
 import Spinner from '../ui/Spinner'
@@ -29,13 +30,16 @@ function todayString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function formatTime(value) {
+function formatTime(value, timeFormat = 'H12') {
   if (!value) return ''
   const [h, min] = value.split(':')
   if (h === undefined || min === undefined) return value
+  if (timeFormat === 'H24') {
+    return `${h}:${min}`
+  }
   const d = new Date()
   d.setHours(Number(h), Number(min))
-  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
 function formatLongDate(value) {
@@ -112,6 +116,7 @@ function errorMessage(err) {
 
 export default function Journal() {
   const location = useLocation()
+  const { user } = useAuth()
   const openTrash = location.state?.openTrash
   const [tab, setTab] = useState(openTrash ? 'memories' : 'home')
   const [view, setView] = useState(openTrash ? 'trash' : 'memories')
@@ -524,7 +529,7 @@ export default function Journal() {
   const memoryMeta = (memory) => (
     <p className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-ink-faint">
       {memory.eventTime && (
-        <span className="uppercase tracking-[0.14em]">{formatTime(memory.eventTime)}</span>
+        <span className="uppercase tracking-[0.14em]">{formatTime(memory.eventTime, user?.timeFormat)}</span>
       )}
       {memory.status === 'DRAFT' && (
         <span className="font-medium italic text-accent">Draft</span>
@@ -661,7 +666,7 @@ export default function Journal() {
                 aria-hidden
                 className="cursor-pointer underline-offset-4 group-hover:underline group-focus-within:underline"
               >
-                {form.eventTime ? formatTime(form.eventTime) : 'Add time'}
+                {form.eventTime ? formatTime(form.eventTime, user?.timeFormat) : 'Add time'}
               </span>
               <input
                 id="eventTime"
@@ -861,7 +866,7 @@ export default function Journal() {
             <h2 className="font-display text-xl font-semibold text-ink">Read memory</h2>
             <div className="flex items-center justify-between">
               <p className="text-xs text-ink-soft">
-                {formatLongDate(viewing.eventDate)}{viewing.eventTime ? ` · ${formatTime(viewing.eventTime)}` : ''}
+                {formatLongDate(viewing.eventDate)}{viewing.eventTime ? ` · ${formatTime(viewing.eventTime, user?.timeFormat)}` : ''}
               </p>
               {viewing.tags?.length > 0 && (
                 <button

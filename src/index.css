@@ -84,3 +84,11 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+/* Theme-independent brand logo colors. */
+.lc-logo-text {
+  color: #2d251d;
+}
+html[data-mode='dark'] .lc-logo-text {
+  color: #efe7d9;
+}

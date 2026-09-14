@@ -15,6 +15,9 @@ import ProfileShell from './pages/ProfileShell'
 import Profile from './pages/Profile'
 import AppearanceTab from './pages/AppearanceTab'
 import Security from './pages/Security'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
+import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -52,6 +55,10 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/contact" element={<Contact />} />
 
             <Route
               path="/app"

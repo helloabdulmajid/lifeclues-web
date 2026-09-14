@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { AlertTriangle, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import Button from '../ui/Button'
 import Alert from '../ui/Alert'
@@ -34,6 +35,7 @@ function PasswordInput({ id, label, autoComplete, value, onChange, show, onToggl
 
 export default function Security() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   const [form, setForm] = useState({ current: '', next: '', confirm: '' })
   const [shown, setShown] = useState({ current: false, next: false, confirm: false })
@@ -41,6 +43,10 @@ export default function Security() {
   const [formError, setFormError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const set = (key) => (e) => {
     setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -83,6 +89,23 @@ export default function Security() {
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await accountApi.deleteAccount()
+      logout()
+      navigate('/', { replace: true })
+    } catch (err) {
+      setDeleting(false)
+      if (err instanceof ApiError) {
+        setDeleteError(err.message)
+      } else {
+        setDeleteError('Something went wrong. Please try again.')
+      }
     }
   }
 
@@ -153,6 +176,88 @@ export default function Security() {
           </div>
         </form>
       </div>
+
+      <div className="mt-6 rounded-card border border-red-200 bg-red-50 shadow-card lc-themed dark:border-red-900/40 dark:bg-red-950/30">
+        <div className="border-b border-red-200 p-6 sm:p-8 dark:border-red-900/40">
+          <div className="flex items-center gap-4">
+            <span className="flex size-11 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
+              <AlertTriangle className="size-6" aria-hidden />
+            </span>
+            <div>
+              <h2 className="font-display text-xl font-semibold text-red-800 dark:text-red-200">
+                Delete account
+              </h2>
+              <p className="text-sm text-red-600 dark:text-red-300">
+                Permanently remove your account and all data
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 sm:p-8">
+          <p className="text-sm text-red-700 dark:text-red-300">
+            Once you delete your account, there is no going back. This action is permanent.
+          </p>
+          <div className="mt-4 flex justify-end">
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => { setShowDeleteDialog(true); setDeleteError('') }}
+            >
+              Delete account
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            className="w-full max-w-md rounded-card border border-line bg-surface shadow-xl lc-themed"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+          >
+            <div className="p-6 sm:p-8">
+              <h3
+                id="delete-dialog-title"
+                className="font-display text-lg font-semibold text-ink"
+              >
+                Delete your account?
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+                This will permanently delete your account, memories, drafts, tags, and all other
+                data associated with it. This cannot be undone.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                Your data will no longer be accessible after deletion.
+              </p>
+              {deleteError && (
+                <Alert variant="error" className="mt-4">
+                  {deleteError}
+                </Alert>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-line px-6 py-4 sm:px-8">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowDeleteDialog(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                loading={deleting}
+                onClick={handleDeleteAccount}
+              >
+                Delete my account
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
