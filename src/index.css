@@ -73,3 +73,14 @@
     border-color 0.3s ease,
     color 0.3s ease;
 }
+
+.read-mode header {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.read-mode.read-controls-visible header {
+  opacity: 1;
+  pointer-events: auto;
+}

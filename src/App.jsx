@@ -13,6 +13,7 @@ import VerifyEmail from './pages/VerifyEmail'
 import Journal from './pages/Journal'
 import ProfileShell from './pages/ProfileShell'
 import Profile from './pages/Profile'
+import AppearanceTab from './pages/AppearanceTab'
 import Security from './pages/Security'
 import NotFound from './pages/NotFound'
 
@@ -63,6 +64,7 @@ function App() {
               <Route index element={<Journal />} />
               <Route path="profile" element={<ProfileShell />}>
                 <Route index element={<Profile />} />
+                <Route path="appearance" element={<AppearanceTab />} />
                 <Route path="security" element={<Security />} />
               </Route>
             </Route>
