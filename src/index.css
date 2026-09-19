@@ -26,6 +26,35 @@
   --font-display: var(--lc-font-display);
   --font-sans: var(--lc-font-sans);
 
+  /* Landing page fonts (warm editorial marketing page). */
+  --font-grotesk: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-plxmono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-caveat: 'Caveat', 'Segoe Script', 'Comic Sans MS', cursive;
+
+  /* Landing page fixed warm palette (does not follow app themes). */
+  --color-lnd-paper: #f6f1e6;
+  --color-lnd-card: #fffdf6;
+  --color-lnd-deep: #efe7d8;
+  --color-lnd-line: #e7e0d0;
+  --color-lnd-ink: #211b11;
+  --color-lnd-mut: #6e675a;
+  --color-lnd-faint: #87806f;
+  --color-lnd-sienna: #b4501e;
+  --color-lnd-indigo: #6e6d8e;
+  --color-lnd-indigo-hover: #454674;
+
+  /* Mood colors used on memory cards / pills. */
+  --color-mood-special-bg: #f3e2d6;
+  --color-mood-special-ink: #a35427;
+  --color-mood-sad-bg: #dfe4ed;
+  --color-mood-sad-ink: #4a5568;
+  --color-mood-win-bg: #f1e3bf;
+  --color-mood-win-ink: #8a6b33;
+  --color-mood-social-bg: #e4dde9;
+  --color-mood-social-ink: #655a71;
+  --color-mood-chill-bg: #e2ece3;
+  --color-mood-chill-ink: #4e6347;
+
   --radius-soft: var(--lc-radius-soft);
   --radius-card: var(--lc-radius-card);
   --radius-pill: var(--lc-radius-pill);
@@ -91,4 +120,33 @@
 }
 html[data-mode='dark'] .lc-logo-text {
   color: #efe7d9;
+}
+
+/* ================= Landing page helpers ================= */
+
+.landing {
+  scroll-behavior: smooth;
+}
+
+.paper-texture {
+  background-image: radial-gradient(rgba(33, 27, 17, 0.028) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.lc-float {
+  animation: lc-float 7s ease-in-out infinite;
+}
+
+.lc-float-slow {
+  animation: lc-float 11s ease-in-out infinite;
+}
+
+@keyframes lc-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }

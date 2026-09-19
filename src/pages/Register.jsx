@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Check, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import AuthLayout from '../ui/AuthLayout'
-import Button from '../ui/Button'
-import Alert from '../ui/Alert'
-import { Field, TextField, inputClass } from '../ui/Field'
+import BrandButton from '../ui/BrandButton'
+import BrandAlert from '../ui/BrandAlert'
+import { brandInputClass, BrandField, BrandTextField } from '../ui/BrandField'
 import { ApiError } from '../api/http'
 
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,30}$/
@@ -88,90 +88,84 @@ export default function Register() {
   }
 
   const passwordField = (
-    <Field label="Password" id="password" error={errors.password}>
-      <div className="relative">
-        <input
-          id="password"
-          type={showPassword ? 'text' : 'password'}
-          autoComplete="new-password"
-          placeholder="At least 8 characters"
-          className="w-full rounded-soft border border-line-strong bg-surface px-4 py-3 pr-11 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-accent focus:outline-2 focus:outline-offset-1 focus:outline-accent"
-          value={form.password}
-          onChange={set('password')}
-        />
+    <BrandField
+      label="Password"
+      id="password"
+      error={errors.password}
+      trailing={
         <button
           type="button"
           onClick={() => setShowPassword((v) => !v)}
           aria-label={showPassword ? 'Hide password' : 'Show password'}
-          className="absolute inset-y-0 right-0 flex items-center pr-4 text-ink-faint hover:text-ink"
+          className="text-lnd-faint transition-colors hover:text-lnd-ink"
         >
           {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
         </button>
-      </div>
-    </Field>
+      }
+    >
+      <input
+        id="password"
+        type={showPassword ? 'text' : 'password'}
+        autoComplete="new-password"
+        placeholder="At least 8 characters"
+        className={brandInputClass(!!errors.password, 'pr-11')}
+        value={form.password}
+        onChange={set('password')}
+      />
+    </BrandField>
   )
 
   const confirmTouched = form.confirm.length > 0
   const confirmMatch = form.password === form.confirm
 
   const confirmField = (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor="confirm" className="text-sm font-semibold text-ink">
-          Confirm password
-        </label>
-      </div>
-      <div className="relative">
-        <input
-          id="confirm"
-          type={showConfirm ? 'text' : 'password'}
-          autoComplete="new-password"
-          placeholder="Repeat your password"
-          aria-invalid={confirmTouched && !confirmMatch ? true : undefined}
-          aria-describedby={confirmTouched ? 'confirm-status' : undefined}
-          className={`${inputClass(confirmTouched && !confirmMatch)} pr-11`}
-          value={form.confirm}
-          onChange={set('confirm')}
-        />
+    <BrandField
+      label="Confirm password"
+      id="confirm"
+      error={confirmTouched && !confirmMatch ? 'Passwords do not match.' : errors.confirm}
+      trailing={
         <button
           type="button"
           onClick={() => setShowConfirm((v) => !v)}
           aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
-          className="absolute inset-y-0 right-0 flex items-center pr-4 text-ink-faint hover:text-ink"
+          className="text-lnd-faint transition-colors hover:text-lnd-ink"
         >
           {showConfirm ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
         </button>
-      </div>
-      {errors.confirm || (confirmTouched && !confirmMatch) ? (
-        <p id="confirm-status" className="text-sm text-danger">
-          {errors.confirm || 'Passwords do not match.'}
-        </p>
-      ) : confirmTouched ? (
-        <p id="confirm-status" className="flex items-center gap-1.5 text-sm text-accent">
-          <Check className="size-4" aria-hidden />
-          Passwords match.
-        </p>
-      ) : null}
-    </div>
+      }
+    >
+      <input
+        id="confirm"
+        type={showConfirm ? 'text' : 'password'}
+        autoComplete="new-password"
+        placeholder="Repeat your password"
+        aria-invalid={confirmTouched && !confirmMatch ? true : undefined}
+        aria-describedby={confirmTouched ? 'confirm-status' : undefined}
+        className={brandInputClass(confirmTouched && !confirmMatch, 'pr-11')}
+        value={form.confirm}
+        onChange={set('confirm')}
+      />
+    </BrandField>
   )
 
   return (
     <AuthLayout
-      title="Open your memory book"
+      eyebrow="Begin your book"
+      title="Open your memory book."
       subtitle="Start small — you can write everything later."
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-accent hover:underline">
+          <Link to="/login" className="font-semibold" style={{ color: '#b4501e' }}>
             Sign in
           </Link>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {formError && <Alert variant="error">{formError}</Alert>}
+        {formError && <BrandAlert variant="error">{formError}</BrandAlert>}
 
-        <TextField
+        <BrandTextField
           label="Email"
           id="email"
           type="email"
@@ -183,7 +177,7 @@ export default function Register() {
           autoFocus
         />
 
-        <TextField
+        <BrandTextField
           label="Username"
           id="username"
           autoComplete="username"
@@ -194,7 +188,7 @@ export default function Register() {
           error={errors.username}
         />
 
-        <TextField
+        <BrandTextField
           label="Display name (optional)"
           id="displayName"
           autoComplete="name"
@@ -209,11 +203,18 @@ export default function Register() {
 
         {confirmField}
 
-        <Button type="submit" className="w-full" size="lg" loading={loading}>
-          Create account
-        </Button>
+        {confirmTouched && confirmMatch && (
+          <p id="confirm-status" className="-mt-3 flex items-center gap-1.5 text-sm" style={{ color: '#4e6347' }}>
+            <Check className="size-4" aria-hidden />
+            Passwords match.
+          </p>
+        )}
 
-        <p className="text-center text-xs text-ink-faint">
+        <BrandButton type="submit" className="w-full" size="lg" loading={loading}>
+          Create account
+        </BrandButton>
+
+        <p className="text-center font-plxmono text-[11px] uppercase tracking-[0.12em] text-lnd-faint">
           By creating an account you agree to keep your memories private.
         </p>
       </form>

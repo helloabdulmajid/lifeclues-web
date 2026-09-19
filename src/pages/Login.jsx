@@ -4,9 +4,9 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { authApi } from '../api/client'
 import AuthLayout from '../ui/AuthLayout'
-import Button from '../ui/Button'
-import Alert from '../ui/Alert'
-import { Field, TextField } from '../ui/Field'
+import BrandButton from '../ui/BrandButton'
+import BrandAlert from '../ui/BrandAlert'
+import { brandInputClass, BrandField, BrandTextField } from '../ui/BrandField'
 import { ApiError } from '../api/http'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -66,41 +66,51 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Welcome back"
+      eyebrow="Welcome back"
+      title="Good to see you."
       subtitle="Your memory book is waiting."
       footer={
         <>
           New to LifeClues?{' '}
-          <Link to="/register" className="font-semibold text-accent hover:underline">
+          <Link
+            to="/register"
+            className="font-semibold"
+            style={{ color: '#b4501e' }}
+          >
             Create an account
           </Link>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {error && <Alert variant="error">{error}</Alert>}
+        {error && <BrandAlert variant="error">{error}</BrandAlert>}
 
         {needsVerify && EMAIL_RE.test(loginField.trim()) && (
           <div className="text-right">
             {resend.state === 'done' ? (
-              <p className="text-xs font-medium text-accent">{resend.message}</p>
+              <p className="text-xs font-medium" style={{ color: '#b4501e' }}>
+                {resend.message}
+              </p>
             ) : (
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={resend.state === 'sending'}
-                className="text-xs font-semibold text-accent transition-colors hover:underline disabled:opacity-60"
+                className="font-plxmono text-[11px] uppercase tracking-[0.1em] transition-colors hover:underline disabled:opacity-60"
+                style={{ color: '#b4501e' }}
               >
                 {resend.state === 'sending' ? 'Sending…' : 'Resend verification email'}
               </button>
             )}
             {resend.state === 'error' && (
-              <p className="text-xs text-danger">{resend.message}</p>
+              <p className="text-xs" style={{ color: '#9c4a1d' }}>
+                {resend.message}
+              </p>
             )}
           </div>
         )}
 
-        <TextField
+        <BrandTextField
           label="Email or username"
           id="login"
           autoComplete="username"
@@ -110,39 +120,42 @@ export default function Login() {
           autoFocus
         />
 
-        <Field label="Password" id="password">
-          <div className="relative">
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              placeholder="Your password"
-              className="w-full rounded-soft border border-line-strong bg-surface px-4 py-3 pr-11 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-accent focus:outline-2 focus:outline-offset-1 focus:outline-accent"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+        <BrandField
+          label="Password"
+          id="password"
+          trailing={
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute inset-y-0 right-0 flex items-center pr-4 text-ink-faint hover:text-ink"
+              className="text-lnd-faint transition-colors hover:text-lnd-ink"
             >
               {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
             </button>
-          </div>
-          <div className="text-right">
+          }
+          extra={
             <Link
               to="/forgot-password"
-              className="text-xs text-ink-faint transition-colors hover:text-accent"
+              className="font-plxmono text-[11px] uppercase tracking-[0.1em] text-lnd-faint transition-colors hover:text-lnd-sienna"
             >
               Forgot your password?
             </Link>
-          </div>
-        </Field>
+          }
+        >
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            placeholder="Your password"
+            className={brandInputClass(false, 'pr-11')}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </BrandField>
 
-        <Button type="submit" className="w-full" size="lg" loading={loading}>
+        <BrandButton type="submit" className="w-full" size="lg" loading={loading}>
           Sign in
-        </Button>
+        </BrandButton>
       </form>
     </AuthLayout>
   )
