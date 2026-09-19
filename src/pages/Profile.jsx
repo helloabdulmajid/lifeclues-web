@@ -222,7 +222,7 @@ export default function Profile() {
                 <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
                   {aboutRows.map((row) => (
                     <div key={row.label} className="min-w-0">
-                      <dt className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+                      <dt className="font-plxmono text-[10px] font-medium uppercase tracking-[0.18em] text-ink-faint">
                         {row.label}
                       </dt>
                       <dd className="break-words text-sm text-ink">{row.value}</dd>

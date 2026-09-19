@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
+import PageHeader from '../ui/PageHeader'
 
 const tabClass = ({ isActive }) =>
   [
@@ -16,6 +17,11 @@ export default function ProfileShell() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <PageHeader
+        eyebrow="Settings"
+        title="Profile"
+        subtitle="About you, how LifeClues looks, and your account."
+      />
       <nav className="mb-6 flex w-fit gap-1 rounded-soft border border-line bg-surface p-1 lc-themed">
         <NavLink to="/app/profile" end className={tabClass}>
           About
@@ -31,8 +37,8 @@ export default function ProfileShell() {
       <div className="mt-8 border-t border-line pt-6">
         <button
           type="button"
-          onClick={() => navigate('/app', { state: { openTrash: true } })}
-          className="inline-flex items-center gap-2 text-sm text-ink-faint transition-colors hover:text-ink"
+          onClick={() => navigate('/app?tab=memories&view=trash')}
+          className="inline-flex items-center gap-2 font-plxmono text-[11px] uppercase tracking-[0.16em] text-ink-faint transition-colors hover:text-sienna"
         >
           <Trash2 className="size-4" aria-hidden />
           Trash

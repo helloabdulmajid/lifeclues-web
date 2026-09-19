@@ -21,27 +21,32 @@
   --color-danger: var(--lc-danger);
   --color-danger-soft: var(--lc-danger-soft);
   --color-danger-ink: var(--lc-danger-ink);
+  --color-sienna: var(--lc-sienna);
+  --color-sienna-soft: var(--lc-sienna-soft);
   --color-scanlines: var(--lc-scanlines);
 
   --font-display: var(--lc-font-display);
   --font-sans: var(--lc-font-sans);
+  --font-mono: var(--lc-font-mono);
+  --font-hand: var(--lc-font-hand);
 
-  /* Landing page fonts (warm editorial marketing page). */
+  /* Warmed editorial fonts (used across landing + auth). */
   --font-grotesk: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-plxmono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-caveat: 'Caveat', 'Segoe Script', 'Comic Sans MS', cursive;
 
-  /* Landing page fixed warm palette (does not follow app themes). */
-  --color-lnd-paper: #f6f1e6;
-  --color-lnd-card: #fffdf6;
-  --color-lnd-deep: #efe7d8;
-  --color-lnd-line: #e7e0d0;
-  --color-lnd-ink: #211b11;
-  --color-lnd-mut: #6e675a;
-  --color-lnd-faint: #87806f;
-  --color-lnd-sienna: #b4501e;
-  --color-lnd-indigo: #6e6d8e;
-  --color-lnd-indigo-hover: #454674;
+  /* Landing help palette — follows the app theme so the whole
+     product (landing, auth, app) shares one Light/Dark/Auto identity. */
+  --color-lnd-paper: var(--lc-paper);
+  --color-lnd-card: var(--lc-surface);
+  --color-lnd-deep: var(--lc-surface-2);
+  --color-lnd-line: var(--lc-line);
+  --color-lnd-ink: var(--lc-ink);
+  --color-lnd-mut: var(--lc-ink-soft);
+  --color-lnd-faint: var(--lc-ink-faint);
+  --color-lnd-sienna: var(--lc-sienna);
+  --color-lnd-indigo: var(--lc-accent);
+  --color-lnd-indigo-hover: var(--lc-accent-hover);
 
   /* Mood colors used on memory cards / pills. */
   --color-mood-special-bg: #f3e2d6;
@@ -103,13 +108,43 @@
     color 0.3s ease;
 }
 
+/* Warm skeleton shimmer for loading states. */
+.lc-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--lc-radius-soft);
+  background: var(--lc-surface-2);
+}
+
+.lc-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--lc-grain), transparent);
+  animation: lc-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes lc-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .read-mode header {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
 
-.read-mode.read-controls-visible header {
+.read-mode aside {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.read-mode.read-controls-visible header,
+.read-mode.read-controls-visible aside {
   opacity: 1;
   pointer-events: auto;
 }
@@ -129,7 +164,7 @@ html[data-mode='dark'] .lc-logo-text {
 }
 
 .paper-texture {
-  background-image: radial-gradient(rgba(33, 27, 17, 0.028) 1px, transparent 1px);
+  background-image: radial-gradient(var(--lc-grain) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 

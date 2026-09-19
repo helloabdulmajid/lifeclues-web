@@ -12,19 +12,7 @@ export const THEMES = [
     id: 'paper',
     name: 'Paper & Book',
     tagline: 'Warm, book-like calm. The LifeClues default.',
-    swatch: ['#f7f1e5', '#b25e38'],
-  },
-  {
-    id: 'indigo',
-    name: 'Modern Minimal',
-    tagline: 'Clean, sharp, distraction-free.',
-    swatch: ['#f5f6fa', '#4f46e5'],
-  },
-  {
-    id: 'green',
-    name: 'Earthy Calm',
-    tagline: 'Soft greens, rooted and close to nature.',
-    swatch: ['#f4f2e6', '#41693c'],
+    swatch: ['#f6f1e6', '#6e6d8e'],
   },
 ]
 
@@ -63,9 +51,8 @@ function resolveMode(mode) {
 const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(() =>
-    readPref(THEME_KEY, 'paper'),
-  )
+  // Paper & Book is the only theme. Legacy stored values are sanitized.
+  const [theme] = useState('paper')
   const [mode, setModeState] = useState(() => readPref(MODE_KEY, 'system'))
 
   const apply = useCallback((t, m) => {
@@ -88,7 +75,7 @@ export function ThemeProvider({ children }) {
 
   const setTheme = useCallback(
     (t) => {
-      setThemeState(t)
+      if (t !== 'paper') return
       writePref(THEME_KEY, t)
     },
     [],
