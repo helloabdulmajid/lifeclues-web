@@ -1,19 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
-  <rect width="48" height="48" rx="12" fill="#4a3728"/>
-  <g transform="translate(12, 11)">
-    <!-- Left page -->
-    <path d="M12 4 C12 4, 3 4, 3 7 L3 23 C3 23, 12 23, 12 20 Z" fill="#fff7ea" opacity="0.9"/>
-    <!-- Right page -->
-    <path d="M12 4 C12 4, 21 4, 21 7 L21 23 C21 23, 12 23, 12 20 Z" fill="#fff7ea" opacity="0.75"/>
-    <!-- Spine -->
-    <line x1="12" y1="4" x2="12" y2="20" stroke="#4a3728" stroke-width="1.2" stroke-linecap="round"/>
-    <!-- Left lines -->
-    <line x1="5.5" y1="9" x2="10" y2="9" stroke="#4a3728" stroke-width="0.8" stroke-linecap="round" opacity="0.4"/>
-    <line x1="5.5" y1="12" x2="10" y2="12" stroke="#4a3728" stroke-width="0.8" stroke-linecap="round" opacity="0.4"/>
-    <line x1="5.5" y1="15" x2="9" y2="15" stroke="#4a3728" stroke-width="0.8" stroke-linecap="round" opacity="0.4"/>
-    <!-- Right lines -->
-    <line x1="14" y1="9" x2="18.5" y2="9" stroke="#4a3728" stroke-width="0.8" stroke-linecap="round" opacity="0.35"/>
-    <line x1="14" y1="12" x2="18.5" y2="12" stroke="#4a3728" stroke-width="0.8" stroke-linecap="round" opacity="0.35"/>
-    <line x1="14" y1="15" x2="17.5" y2="15" stroke="#4a3728" stroke-width="0.8" stroke-linecap="round" opacity="0.35"/>
+  <rect width="48" height="48" rx="12" fill="#f6f1e6"/>
+  <rect x="1.5" y="1.5" width="45" height="45" rx="10.5" stroke="#e7e0d0" stroke-width="1.5"/>
+  <g transform="translate(12, 11) scale(2.1)" stroke="#b4501e" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 21C8 21 5 18.2 5 14.2 5 9.6 8.1 6 12 6s7 3.6 7 8.2c0 4-3 6.8-7 6.8Z"/>
+    <path d="M12 6c3 1.6 5 4.8 5.6 8.4" fill="none"/>
+    <path d="M12 6c-1.6 1.8-2.6 4.2-2.9 6.8" fill="none"/>
+    <path d="M4.5 19c4-.5 7.6-2.4 10-5.5" fill="none" opacity="0.6"/>
   </g>
+  <circle cx="37.5" cy="11" r="2" fill="#6e6d8e"/>
+  <circle cx="38" cy="10.5" r="0.6" fill="#f6f1e6"/>
 </svg>

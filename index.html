@@ -19,7 +19,7 @@
       /* Apply saved appearance before first paint to avoid flashing. */
       ;(function () {
         try {
-          var mode = localStorage.getItem('lifeclues.mode') || 'system'
+          var mode = localStorage.getItem('lifeclues.mode') || 'light'
           var resolved =
             mode === 'system'
               ? window.matchMedia('(prefers-color-scheme: dark)').matches

@@ -53,7 +53,7 @@ const ThemeContext = createContext(null)
 export function ThemeProvider({ children }) {
   // Paper & Book is the only theme. Legacy stored values are sanitized.
   const [theme] = useState('paper')
-  const [mode, setModeState] = useState(() => readPref(MODE_KEY, 'system'))
+  const [mode, setModeState] = useState(() => readPref(MODE_KEY, 'light'))
 
   const apply = useCallback((t, m) => {
     document.documentElement.setAttribute('data-theme', t)

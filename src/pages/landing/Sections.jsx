@@ -62,7 +62,7 @@ export function FeaturesRow() {
                 className="mx-auto flex size-14 items-center justify-center rounded-full border border-lnd-line shadow-soft"
                 style={{ backgroundColor: f.bg }}
               >
-                <f.icon className="size-6 text-lnd-ink" strokeWidth={1.6} aria-hidden />
+                <f.icon className="size-6 text-lnd-sienna" strokeWidth={1.6} aria-hidden />
               </span>
               <h3 className="mt-4 font-caveat text-2xl leading-none text-lnd-ink">
                 {f.title}

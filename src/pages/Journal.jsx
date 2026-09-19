@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
@@ -143,10 +144,12 @@ function errorMessage(err) {
 
 export default function Journal() {
   const { user } = useAuth()
-  const { tab, view } = useJournalNav()
+  const { tab, view, viewId, openRead, closeRead } = useJournalNav()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const compose = searchParams.get('compose') === '1'
   const [now] = useState(Date.now)
   const [editor, setEditor] = useState(null)
-  const [viewing, setViewing] = useState(null)
+  const editingId = compose ? 'new' : editor
   const [form, setForm] = useState({ ...EMPTY_FORM, eventDate: todayString() })
   const [saveError, setSaveError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -163,9 +166,12 @@ export default function Journal() {
   const [openActions, setOpenActions] = useState(null)
   const [pageError, setPageError] = useState('')
   const contentRef = useRef(null)
-  const [readControlsVisible, setReadControlsVisible] = useState(true)
   const hideTimerRef = useRef(null)
   const readSectionRef = useRef(null)
+
+  const viewing = viewId
+    ? memories.find((m) => m.id === viewId) || trashed.find((m) => m.id === viewId) || null
+    : null
 
   const [userTags, setUserTags] = useState([])
   const [userTagsLoaded, setUserTagsLoaded] = useState(false)
@@ -184,18 +190,18 @@ export default function Journal() {
   }
 
   useEffect(() => {
-    if (editor) autoGrow()
-  }, [editor])
+    if (editingId) autoGrow()
+  }, [editingId])
 
   useEffect(() => {
-    if ((editor !== null || viewing) && !userTagsLoaded && !userTagsLoading) {
+    if ((editingId !== null || viewing) && !userTagsLoaded && !userTagsLoading) {
       setUserTagsLoading(true)
       memoryApi.listTags()
         .then((tags) => { setUserTags(tags); setUserTagsLoaded(true) })
         .catch(() => {})
         .finally(() => setUserTagsLoading(false))
     }
-  }, [editor, viewing, userTagsLoaded, userTagsLoading])
+  }, [editingId, viewing, userTagsLoaded, userTagsLoading])
 
   useEffect(() => {
     if (!editTagsOpen) return
@@ -217,15 +223,13 @@ export default function Journal() {
   }, [editTagsOpen])
 
   useEffect(() => {
-    if (!viewing) return
+    if (!viewing || editingId !== null) return
     const html = document.documentElement
     html.classList.add('read-mode')
     const showThenHide = () => {
-      setReadControlsVisible(true)
       html.classList.add('read-controls-visible')
       clearTimeout(hideTimerRef.current)
       hideTimerRef.current = setTimeout(() => {
-        setReadControlsVisible(false)
         html.classList.remove('read-controls-visible')
       }, 2500)
     }
@@ -235,7 +239,17 @@ export default function Journal() {
       html.classList.remove('read-controls-visible')
       html.classList.remove('read-mode')
     }
-  }, [viewing])
+  }, [viewing, editingId])
+
+  useEffect(() => {
+    const html = document.documentElement
+    if (editingId !== null) {
+      html.classList.add('lc-editing')
+    } else {
+      html.classList.remove('lc-editing')
+    }
+    return () => html.classList.remove('lc-editing')
+  }, [editingId])
 
   const busy = view === 'memories' ? !loaded.memories : !loaded.trash
 
@@ -316,20 +330,36 @@ export default function Journal() {
 
   const resetEditor = () => {
     setEditor(null)
-    setViewing(null)
     setForm({ ...EMPTY_FORM, eventDate: todayString() })
     setSaveError('')
     setTagInput('')
     setEditTagsOpen(false)
   }
 
+  const resetEditorRef = useRef(null)
+  resetEditorRef.current = resetEditor
+
+  useEffect(() => {
+    const discardDraft = () => resetEditorRef.current && resetEditorRef.current()
+    window.addEventListener('lifeclues:discard-draft', discardDraft)
+    return () => window.removeEventListener('lifeclues:discard-draft', discardDraft)
+  }, [])
+
   const openEditor = () => {
     setSaveError('')
-    setViewing(null)
     setTagInput('')
     setEditTagsOpen(false)
     setEditor('new')
   }
+
+  useEffect(() => {
+    if (!compose) return
+    openEditor()
+    const params = new URLSearchParams(searchParams)
+    params.delete('compose')
+    setSearchParams(params, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compose])
 
   const setField = (key) => (event) => {
     setForm((f) => ({ ...f, [key]: event.target.value }))
@@ -367,7 +397,6 @@ export default function Journal() {
 
   const startEdit = (memory) => {
     setEditor(memory.id)
-    setViewing(null)
     setSaveError('')
     setTagInput('')
     setEditTagsOpen(false)
@@ -382,7 +411,7 @@ export default function Journal() {
   }
 
   const viewMemory = (memory) => {
-    setViewing(memory)
+    openRead(memory.id)
     setReadTagsOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -416,8 +445,8 @@ export default function Journal() {
       tags: form.tags.length > 0 ? form.tags : undefined,
     }
     try {
-      if (editor && editor !== 'new') {
-        await memoryApi.update(editor, payload)
+      if (editingId && editingId !== 'new') {
+        await memoryApi.update(editingId, payload)
       } else {
         await memoryApi.create(payload)
       }
@@ -503,7 +532,7 @@ export default function Journal() {
         onClick={(e) => { e.stopPropagation(); setOpenActions((cur) => (cur === memory.id ? null : memory.id)) }}
         aria-label="Memory actions"
         title="More"
-        className={`flex size-7 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${
+        className={`flex size-6 -m-2 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 sm:size-7 sm:m-0 sm:opacity-0 sm:group-hover:opacity-100 ${
           openActions === memory.id ? 'bg-surface-2 text-ink sm:opacity-100' : ''
         }`}
       >
@@ -636,9 +665,9 @@ export default function Journal() {
         </span>
         <div>
           <h2 className="font-display text-xl font-semibold text-ink">
-            {editor === 'new' ? 'Write a memory' : 'Edit memory'}
+            {editingId === 'new' ? 'Write a memory' : 'Edit memory'}
           </h2>
-          {editor !== 'new' && (
+          {editingId !== 'new' && (
             <p className="text-xs text-ink-soft">
               Anything can change — this is your memory.
             </p>
@@ -820,7 +849,7 @@ export default function Journal() {
   )
 
   const editorActions = (
-    <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-line bg-paper/90 backdrop-blur lc-themed lg:left-[calc(50%+7.5rem)] lg:right-auto lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-card lg:border lg:pb-2">
+    <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-line bg-paper/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lc-themed lg:bottom-6 lg:left-[calc(50%+7.5rem)] lg:right-auto lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-card lg:border lg:pb-2">
       <div className="mx-auto flex h-14 max-w-2xl items-center justify-end gap-2 px-4 sm:px-6">
         <Button
           variant="ghost"
@@ -922,12 +951,12 @@ export default function Journal() {
           </div>
         </div>
 
-        <div className={`mt-8 flex items-center justify-between gap-2 transition-opacity duration-300 ${readControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <Button variant="ghost" size="sm" onClick={() => setViewing(null)}>
+        <div className="mt-8 flex items-center justify-between gap-2">
+          <Button variant="ghost" size="sm" onClick={closeRead}>
             <ArrowLeft className="size-4" aria-hidden />
             Back
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { setViewing(null); startEdit(viewing) }}>
+          <Button variant="outline" size="sm" onClick={() => { closeRead(); startEdit(viewing) }}>
             <Pencil className="size-4" aria-hidden />
             Edit
           </Button>
@@ -1057,6 +1086,13 @@ export default function Journal() {
         subtitle="Moments worth remembering."
       />
 
+      {hasCompleted && (
+        <p className="mb-2 mt-1 font-plxmono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+          {completed.length} {completed.length === 1 ? 'memory' : 'memories'}
+          {memMore ? ' and more' : ''}
+        </p>
+      )}
+
       {pageError && <Alert variant="error" className="my-6">{pageError}</Alert>}
 
       <div>
@@ -1107,6 +1143,12 @@ export default function Journal() {
         title="Drafts"
         subtitle="A memory still taking shape."
       />
+
+      {hasDrafts && (
+        <p className="mb-2 mt-1 font-plxmono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+          {drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}
+        </p>
+      )}
 
       {pageError && <Alert variant="error" className="my-6">{pageError}</Alert>}
 
@@ -1286,9 +1328,9 @@ export default function Journal() {
     </div>
   )
 
+  if (editingId !== null) return <>{editorCard}{editorActions}<div className="pb-32" /></>
   if (view === 'trash') return <>{trashView}<div className="pb-20" /></>
   if (viewing) return <>{readView}<div className="pb-20" /></>
-  if (editor !== null) return <>{editorCard}{editorActions}<div className="pb-32" /></>
   if (tab === 'home') return <>{homeView}<div className="pb-20" /></>
   if (tab === 'memories') return <>{memoriesView}<div className="pb-20" /></>
   if (tab === 'drafts') return <>{draftsView}<div className="pb-20" /></>

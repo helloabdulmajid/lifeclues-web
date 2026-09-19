@@ -26,6 +26,18 @@ const MOBILE_NAV = [
   { id: 'profile', to: '/app/profile', label: 'Profile', Icon: UserRound },
 ]
 
+const editorIsOpen = () => document.documentElement.classList.contains('lc-editing')
+
+function guardNav(e, navigate, to) {
+  if (!editorIsOpen()) return true
+  e.preventDefault()
+  if (window.confirm('Discard this draft? Your changes will be lost.')) {
+    window.dispatchEvent(new CustomEvent('lifeclues:discard-draft'))
+    navigate(to)
+  }
+  return false
+}
+
 function Rail() {
   const { tab } = useJournalNav()
   const navigate = useNavigate()
@@ -41,6 +53,7 @@ function Rail() {
             <NavLink
               key={id}
               to={to}
+              onClick={(e) => guardNav(e, navigate, to)}
               aria-current={active ? 'page' : undefined}
               className={`group flex items-center gap-3 rounded-soft px-3 py-2 transition-colors ${
                 active
@@ -61,7 +74,10 @@ function Rail() {
 
         <button
           type="button"
-          onClick={() => navigate('/app?tab=memories&view=trash')}
+          onClick={(e) => {
+            if (!guardNav(e, navigate, '/app?tab=memories&view=trash')) return
+            navigate('/app?tab=memories&view=trash')
+          }}
           className="group flex w-full items-center gap-3 rounded-soft px-3 py-2 text-left text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <Trash2 className="size-5 shrink-0" aria-hidden />
@@ -100,10 +116,14 @@ function Rail() {
 function MobileNav() {
   const { tab } = useJournalNav()
   const location = useLocation()
+  const navigate = useNavigate()
   const onProfile = location.pathname.startsWith('/app/profile')
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-paper/90 backdrop-blur lc-themed lg:hidden">
+    <nav
+      className="lc-mobile-nav fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-paper/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lc-themed lg:hidden"
+      aria-label="App navigation"
+    >
       <div className="mx-auto flex h-16 max-w-lg items-end justify-around px-2">
         {MOBILE_NAV.map(({ id, to, label, Icon }) => {
           const isWrite = id === 'write'
@@ -111,21 +131,26 @@ function MobileNav() {
             id === 'profile' ? onProfile : tab === id
           if (isWrite) {
             return (
-              <NavLink
+              <button
                 key={id}
-                to={to}
+                type="button"
+                onClick={(e) => {
+                  if (!guardNav(e, navigate, '/app?compose=1')) return
+                  navigate('/app?compose=1')
+                }}
                 aria-label="Write a memory"
                 title="Write a memory"
                 className="relative -top-5 flex size-14 items-center justify-center rounded-full bg-accent text-accent-ink shadow-card transition-transform hover:scale-105"
               >
                 <Icon className="size-6" aria-hidden />
-              </NavLink>
+              </button>
             )
           }
           return (
             <NavLink
               key={id}
               to={to}
+              onClick={(e) => guardNav(e, navigate, to)}
               className={`flex min-w-12 flex-col items-center gap-1 pb-2 transition-colors ${
                 active ? 'text-accent' : 'text-ink-faint hover:text-ink'
               }`}
@@ -153,6 +178,7 @@ export default function AppShell() {
             <div className="flex items-center gap-1.5 sm:gap-2">
               <NavLink
                 to="/app/profile"
+                onClick={(e) => guardNav(e, navigate, '/app/profile')}
                 className="inline-flex size-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
                 title="Profile"
                 aria-label="Profile"
