@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
@@ -21,6 +21,8 @@ import Button from '../ui/Button'
 import Alert from '../ui/Alert'
 import Spinner from '../ui/Spinner'
 import { Field } from '../ui/Field'
+import PageHeader from '../ui/PageHeader'
+import { useJournalNav } from '../ui/JournalNav'
 
 const EMPTY_FORM = { eventDate: '', eventTime: '', title: '', content: '', tags: [] }
 
@@ -50,6 +52,32 @@ function formatLongDate(value) {
     month: 'long',
     year: 'numeric',
   })
+}
+
+function timeAgo(value) {
+  if (!value) return ''
+  const t = new Date(value).getTime()
+  if (Number.isNaN(t)) return ''
+  const sec = Math.floor((Date.now() - t) / 1000)
+  if (sec < 45) return 'just now'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hrs = Math.floor(min / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `${days}d ago`
+  return new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+}
+
+function todayMonoLine() {
+  return new Date()
+    .toLocaleDateString(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+    .toUpperCase()
 }
 
 function dayParts(value) {
@@ -115,13 +143,13 @@ function errorMessage(err) {
 }
 
 export default function Journal() {
-  const location = useLocation()
   const { user } = useAuth()
-  const openTrash = location.state?.openTrash
-  const [tab, setTab] = useState(openTrash ? 'memories' : 'home')
-  const [view, setView] = useState(openTrash ? 'trash' : 'memories')
+  const { tab, view, viewId, openRead, closeRead } = useJournalNav()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const compose = searchParams.get('compose') === '1'
+  const [now] = useState(Date.now)
   const [editor, setEditor] = useState(null)
-  const [viewing, setViewing] = useState(null)
+  const editingId = compose ? 'new' : editor
   const [form, setForm] = useState({ ...EMPTY_FORM, eventDate: todayString() })
   const [saveError, setSaveError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -138,9 +166,12 @@ export default function Journal() {
   const [openActions, setOpenActions] = useState(null)
   const [pageError, setPageError] = useState('')
   const contentRef = useRef(null)
-  const [readControlsVisible, setReadControlsVisible] = useState(true)
   const hideTimerRef = useRef(null)
   const readSectionRef = useRef(null)
+
+  const viewing = viewId
+    ? memories.find((m) => m.id === viewId) || trashed.find((m) => m.id === viewId) || null
+    : null
 
   const [userTags, setUserTags] = useState([])
   const [userTagsLoaded, setUserTagsLoaded] = useState(false)
@@ -159,24 +190,18 @@ export default function Journal() {
   }
 
   useEffect(() => {
-    if (location.state?.openTrash) {
-      window.history.replaceState({}, '')
-    }
-  }, [location.state])
+    if (editingId) autoGrow()
+  }, [editingId])
 
   useEffect(() => {
-    if (editor) autoGrow()
-  }, [editor])
-
-  useEffect(() => {
-    if ((editor !== null || viewing) && !userTagsLoaded && !userTagsLoading) {
+    if ((editingId !== null || viewing) && !userTagsLoaded && !userTagsLoading) {
       setUserTagsLoading(true)
       memoryApi.listTags()
         .then((tags) => { setUserTags(tags); setUserTagsLoaded(true) })
         .catch(() => {})
         .finally(() => setUserTagsLoading(false))
     }
-  }, [editor, viewing, userTagsLoaded, userTagsLoading])
+  }, [editingId, viewing, userTagsLoaded, userTagsLoading])
 
   useEffect(() => {
     if (!editTagsOpen) return
@@ -198,15 +223,13 @@ export default function Journal() {
   }, [editTagsOpen])
 
   useEffect(() => {
-    if (!viewing) return
+    if (!viewing || editingId !== null) return
     const html = document.documentElement
     html.classList.add('read-mode')
     const showThenHide = () => {
-      setReadControlsVisible(true)
       html.classList.add('read-controls-visible')
       clearTimeout(hideTimerRef.current)
       hideTimerRef.current = setTimeout(() => {
-        setReadControlsVisible(false)
         html.classList.remove('read-controls-visible')
       }, 2500)
     }
@@ -216,7 +239,17 @@ export default function Journal() {
       html.classList.remove('read-controls-visible')
       html.classList.remove('read-mode')
     }
-  }, [viewing])
+  }, [viewing, editingId])
+
+  useEffect(() => {
+    const html = document.documentElement
+    if (editingId !== null) {
+      html.classList.add('lc-editing')
+    } else {
+      html.classList.remove('lc-editing')
+    }
+    return () => html.classList.remove('lc-editing')
+  }, [editingId])
 
   const busy = view === 'memories' ? !loaded.memories : !loaded.trash
 
@@ -297,20 +330,36 @@ export default function Journal() {
 
   const resetEditor = () => {
     setEditor(null)
-    setViewing(null)
     setForm({ ...EMPTY_FORM, eventDate: todayString() })
     setSaveError('')
     setTagInput('')
     setEditTagsOpen(false)
   }
 
+  const resetEditorRef = useRef(null)
+  resetEditorRef.current = resetEditor
+
+  useEffect(() => {
+    const discardDraft = () => resetEditorRef.current && resetEditorRef.current()
+    window.addEventListener('lifeclues:discard-draft', discardDraft)
+    return () => window.removeEventListener('lifeclues:discard-draft', discardDraft)
+  }, [])
+
   const openEditor = () => {
     setSaveError('')
-    setViewing(null)
     setTagInput('')
     setEditTagsOpen(false)
     setEditor('new')
   }
+
+  useEffect(() => {
+    if (!compose) return
+    openEditor()
+    const params = new URLSearchParams(searchParams)
+    params.delete('compose')
+    setSearchParams(params, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compose])
 
   const setField = (key) => (event) => {
     setForm((f) => ({ ...f, [key]: event.target.value }))
@@ -348,7 +397,6 @@ export default function Journal() {
 
   const startEdit = (memory) => {
     setEditor(memory.id)
-    setViewing(null)
     setSaveError('')
     setTagInput('')
     setEditTagsOpen(false)
@@ -363,7 +411,7 @@ export default function Journal() {
   }
 
   const viewMemory = (memory) => {
-    setViewing(memory)
+    openRead(memory.id)
     setReadTagsOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -397,8 +445,8 @@ export default function Journal() {
       tags: form.tags.length > 0 ? form.tags : undefined,
     }
     try {
-      if (editor && editor !== 'new') {
-        await memoryApi.update(editor, payload)
+      if (editingId && editingId !== 'new') {
+        await memoryApi.update(editingId, payload)
       } else {
         await memoryApi.create(payload)
       }
@@ -484,7 +532,7 @@ export default function Journal() {
         onClick={(e) => { e.stopPropagation(); setOpenActions((cur) => (cur === memory.id ? null : memory.id)) }}
         aria-label="Memory actions"
         title="More"
-        className={`flex size-7 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${
+        className={`flex size-6 -m-2 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 sm:size-7 sm:m-0 sm:opacity-0 sm:group-hover:opacity-100 ${
           openActions === memory.id ? 'bg-surface-2 text-ink sm:opacity-100' : ''
         }`}
       >
@@ -527,14 +575,16 @@ export default function Journal() {
   )
 
   const memoryMeta = (memory) => (
-    <p className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-ink-faint">
+    <p className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-plxmono text-[11px] text-ink-faint">
       {memory.eventTime && (
-        <span className="uppercase tracking-[0.14em]">{formatTime(memory.eventTime, user?.timeFormat)}</span>
+        <span className="uppercase tracking-[0.12em]">{formatTime(memory.eventTime, user?.timeFormat)}</span>
       )}
       {memory.status === 'DRAFT' && (
-        <span className="font-medium italic text-accent">Draft</span>
+        <span className="font-medium text-sienna">
+          Draft{memory.updatedAt ? ` · updated ${timeAgo(memory.updatedAt)}` : ''}
+        </span>
       )}
-      {memory.favorite && <Heart className="size-3 fill-current" aria-label="Favorite" />}
+      {memory.favorite && <Heart className="size-3 fill-current text-sienna" aria-label="Favorite" />}
       {memory.pinned && <Pin className="size-3 fill-current" aria-label="Pinned" />}
     </p>
   )
@@ -564,12 +614,12 @@ export default function Journal() {
                 >
                   {parts.day}
                 </div>
-                <div className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">
+                <div className="mt-1.5 font-plxmono text-[9.5px] font-medium uppercase tracking-[0.16em] text-ink-faint">
                   {parts.weekday}
                 </div>
               </>
             ) : (
-              <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">
+              <div className="font-plxmono text-[9.5px] font-medium uppercase tracking-[0.16em] text-ink-faint">
                 later
               </div>
             )}
@@ -577,10 +627,10 @@ export default function Journal() {
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
               <h3
-                className={`break-words font-display leading-snug transition-colors ${
+                className={`break-words font-hand leading-[1.15] transition-colors ${
                   quiet
-                    ? 'text-base font-normal text-ink-faint'
-                    : 'text-xl font-semibold text-ink'
+                    ? 'text-lg font-medium leading-snug text-ink-faint'
+                    : 'text-[26px] font-medium text-ink sm:text-[28px]'
                 }`}
               >
                 {displayTitle}
@@ -615,9 +665,9 @@ export default function Journal() {
         </span>
         <div>
           <h2 className="font-display text-xl font-semibold text-ink">
-            {editor === 'new' ? 'Write a memory' : 'Edit memory'}
+            {editingId === 'new' ? 'Write a memory' : 'Edit memory'}
           </h2>
-          {editor !== 'new' && (
+          {editingId !== 'new' && (
             <p className="text-xs text-ink-soft">
               Anything can change — this is your memory.
             </p>
@@ -628,7 +678,7 @@ export default function Journal() {
       {saveError && <Alert variant="error" className="mb-5">{saveError}</Alert>}
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-baseline gap-x-2 font-display text-base text-ink sm:text-lg">
+        <div className="flex flex-wrap items-baseline gap-x-2 font-plxmono text-sm text-ink sm:text-base">
           <div
             role="group"
             aria-label="Event date and time"
@@ -799,7 +849,7 @@ export default function Journal() {
   )
 
   const editorActions = (
-    <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-line bg-paper/90 backdrop-blur lc-themed">
+    <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-line bg-paper/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lc-themed lg:bottom-6 lg:left-[calc(50%+7.5rem)] lg:right-auto lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-card lg:border lg:pb-2">
       <div className="mx-auto flex h-14 max-w-2xl items-center justify-end gap-2 px-4 sm:px-6">
         <Button
           variant="ghost"
@@ -832,7 +882,6 @@ export default function Journal() {
   )
 
   const readView = viewing && (() => {
-    const parts = dayParts(viewing.eventDate)
     return (
       <section
         ref={readSectionRef}
@@ -865,7 +914,7 @@ export default function Journal() {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-xl font-semibold text-ink">Read memory</h2>
             <div className="flex items-center justify-between">
-              <p className="text-xs text-ink-soft">
+              <p className="font-plxmono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
                 {formatLongDate(viewing.eventDate)}{viewing.eventTime ? ` · ${formatTime(viewing.eventTime, user?.timeFormat)}` : ''}
               </p>
               {viewing.tags?.length > 0 && (
@@ -894,7 +943,7 @@ export default function Journal() {
         )}
 
         <div className="space-y-4">
-          <h3 className="font-display text-2xl font-medium leading-tight text-ink sm:text-3xl">
+          <h3 className="font-hand text-4xl font-medium leading-[1.1] text-ink sm:text-5xl">
             {cleanTitle(viewing.title) || 'Untitled memory'}
           </h3>
           <div className="whitespace-pre-wrap break-words font-display text-xl leading-[1.9] text-ink">
@@ -902,12 +951,12 @@ export default function Journal() {
           </div>
         </div>
 
-        <div className={`mt-8 flex items-center justify-between gap-2 transition-opacity duration-300 ${readControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <Button variant="ghost" size="sm" onClick={() => setViewing(null)}>
+        <div className="mt-8 flex items-center justify-between gap-2">
+          <Button variant="ghost" size="sm" onClick={closeRead}>
             <ArrowLeft className="size-4" aria-hidden />
             Back
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { setViewing(null); startEdit(viewing) }}>
+          <Button variant="outline" size="sm" onClick={() => { closeRead(); startEdit(viewing) }}>
             <Pencil className="size-4" aria-hidden />
             Edit
           </Button>
@@ -922,7 +971,7 @@ export default function Journal() {
     return (
       <section key={key} className="mb-14">
         <div className="mb-8 flex items-center gap-4">
-          <h2 className="shrink-0 font-display text-sm tracking-wide text-ink-faint">
+          <h2 className="shrink-0 font-plxmono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-faint">
             {label}
           </h2>
           <span className="h-px flex-1 bg-line-strong" aria-hidden />
@@ -933,63 +982,147 @@ export default function Journal() {
   }
 
 
-  const homeView = (
-    <div className="flex min-h-[70dvh] flex-col items-center justify-center px-6 text-center">
-      <div className="mb-16">
-        <h1 className="font-display text-4xl font-medium tracking-tight text-ink">
-          What happened today?
-        </h1>
-      </div>
+  const recentClues = [
+    ...new Set(
+      completed
+        .flatMap((m) => m.tags?.map((t) => t.name) ?? [])
+        .map((n) => n.toLowerCase())
+    ),
+  ].slice(0, 6)
 
-      <button
-        type="button"
-        onClick={openEditor}
-        className="group flex items-center gap-3 text-left transition-colors hover:text-accent"
-      >
-        <Feather className="size-5 text-ink-faint transition-colors group-hover:text-accent" aria-hidden />
-        <span className="font-display text-lg text-ink-soft transition-colors group-hover:text-ink">
-          Write a memory
-        </span>
-      </button>
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000
+  const thisWeek = completed.filter((m) => {
+    const t = m.eventDate ? new Date(`${m.eventDate}T00:00:00`).getTime() : NaN
+    return !Number.isNaN(t) && t >= weekAgo
+  })
+  const latest = (thisWeek.length > 0 ? thisWeek : completed).slice(0, 3)
+
+  const homeView = (
+    <div className="mx-auto max-w-2xl">
+      {hasCompleted || hasDrafts ? (
+        <div>
+          <p className="font-plxmono text-[10px] uppercase tracking-[0.22em] text-sienna">
+            {todayMonoLine()}
+          </p>
+          <h1 className="mt-3 font-hand text-4xl font-medium leading-[1.1] text-ink sm:text-5xl">
+            What stayed with you today?
+          </h1>
+          <button
+            type="button"
+            onClick={openEditor}
+            className="group mt-5 inline-flex items-center gap-2.5"
+          >
+            <span className="flex size-10 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft transition-transform group-hover:scale-105">
+              <Feather className="size-5" aria-hidden />
+            </span>
+            <span className="font-display text-base font-medium text-ink-soft transition-colors group-hover:text-ink">
+              Write a memory
+            </span>
+          </button>
+
+          <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 font-plxmono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+            <span>{completed.length} {completed.length === 1 ? 'memory' : 'memories'}</span>
+            {hasDrafts && <span>{drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}</span>}
+          </div>
+
+          {latest.length > 0 && (
+            <div className="mt-10">
+              <div className="mb-6 flex items-center gap-4">
+                <h2 className="shrink-0 font-plxmono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-faint">
+                  {thisWeek.length > 0 ? 'This week' : 'Latest'}
+                </h2>
+                <span className="h-px flex-1 bg-line-strong" aria-hidden />
+              </div>
+              <div className="space-y-9">{latest.map((m) => memoryEntry(m, false))}</div>
+            </div>
+          )}
+
+          {recentClues.length > 0 && (
+            <div className="mt-8 flex flex-wrap items-center gap-2">
+              {recentClues.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full border border-line bg-surface px-2.5 py-1 font-plxmono text-[10px] uppercase tracking-[0.12em] text-ink-soft"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex min-h-[70dvh] flex-col items-center justify-center px-6 text-center">
+          <p className="font-plxmono text-[10px] uppercase tracking-[0.22em] text-sienna">
+            {todayMonoLine()}
+          </p>
+          <h1 className="mt-4 font-hand text-5xl font-medium leading-[1.05] text-ink">
+            What happened today?
+          </h1>
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-soft">
+            No memory is too small. Write it down now, and you'll never have to wonder again.
+          </p>
+          <button
+            type="button"
+            onClick={openEditor}
+            className="group mt-8 inline-flex items-center gap-2.5"
+          >
+            <span className="flex size-11 items-center justify-center rounded-full bg-accent text-accent-ink shadow-card transition-transform group-hover:scale-105">
+              <Feather className="size-5" aria-hidden />
+            </span>
+            <span className="font-display text-lg text-ink-soft transition-colors group-hover:text-ink">
+              Write a memory
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   )
 
   const memoriesView = (
     <div className="mx-auto max-w-2xl">
-      <header className="mb-8">
-        <button
-          type="button"
-          onClick={() => setTab('home')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden />
-          Home
-        </button>
-        <div className="mt-6 flex items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-3xl text-ink">Memories</h1>
-            <p className="mt-2 font-display text-base italic text-ink-soft">
-              Moments worth remembering.
-            </p>
-          </div>
+      <PageHeader
+        eyebrow="Journal"
+        title="Memories"
+        subtitle="Moments worth remembering."
+      />
 
-        </div>
-      </header>
+      {hasCompleted && (
+        <p className="mb-2 mt-1 font-plxmono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+          {completed.length} {completed.length === 1 ? 'memory' : 'memories'}
+          {memMore ? ' and more' : ''}
+        </p>
+      )}
 
       {pageError && <Alert variant="error" className="my-6">{pageError}</Alert>}
 
       <div>
         {busy ? (
-          <div className="flex justify-center py-16 text-ink-faint">
-            <Spinner className="size-6" />
+          <div className="space-y-10 py-4" aria-hidden>
+            <div className="space-y-6">
+              <div className="lc-skeleton h-4 w-32" />
+              <div className="lc-skeleton h-3 w-2/3" />
+              <div className="lc-skeleton h-3 w-1/2" />
+              <div className="lc-skeleton h-3 w-3/4" />
+            </div>
+            <div className="space-y-6">
+              <div className="lc-skeleton h-4 w-36" />
+              <div className="lc-skeleton h-3 w-3/4" />
+              <div className="lc-skeleton h-3 w-1/3" />
+            </div>
           </div>
         ) : hasCompleted ? (() => {
           const months = groupByMonth(completed)
           return months.keys.map((key) => archivedSection(key, months.groups))
         })() : (
-          <p className="py-8 text-center text-sm text-ink-faint">
-            No memories yet — save one when you're ready.
-          </p>
+          <div className="py-14 text-center">
+            <h2 className="font-hand text-3xl font-medium leading-tight text-ink">
+              Nothing here yet.
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-soft">
+              The first page of your book is still blank. Write a memory and it will
+              live here.
+            </p>
+          </div>
         )}
 
         {memMore && !busy && (
@@ -1005,36 +1138,45 @@ export default function Journal() {
 
   const draftsView = (
     <div className="mx-auto max-w-2xl">
-      <header className="mb-8">
-        <button
-          type="button"
-          onClick={() => setTab('home')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden />
-          Home
-        </button>
-        <div className="mt-6">
-          <h1 className="font-display text-3xl text-ink">Drafts</h1>
-          <p className="mt-2 font-display text-base italic text-ink-soft">
-            A memory still taking shape.
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Journal"
+        title="Drafts"
+        subtitle="A memory still taking shape."
+      />
+
+      {hasDrafts && (
+        <p className="mb-2 mt-1 font-plxmono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+          {drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}
+        </p>
+      )}
 
       {pageError && <Alert variant="error" className="my-6">{pageError}</Alert>}
 
       <div>
         {busy ? (
-          <div className="flex justify-center py-16 text-ink-faint">
-            <Spinner className="size-6" />
+          <div className="space-y-10 py-4" aria-hidden>
+            <div className="space-y-6">
+              <div className="lc-skeleton h-4 w-28" />
+              <div className="lc-skeleton h-3 w-2/3" />
+              <div className="lc-skeleton h-3 w-1/2" />
+            </div>
+            <div className="space-y-6">
+              <div className="lc-skeleton h-4 w-40" />
+              <div className="lc-skeleton h-3 w-3/4" />
+              <div className="lc-skeleton h-3 w-2/5" />
+            </div>
           </div>
         ) : hasDrafts ? (
           <div className="space-y-9">{drafts.map((m) => memoryEntry(m, true))}</div>
         ) : (
-          <p className="py-8 text-center text-sm text-ink-faint">
-            No drafts yet — start writing and save as draft.
-          </p>
+          <div className="py-14 text-center">
+            <h2 className="font-hand text-3xl font-medium leading-tight text-ink">
+              Nothing here yet.
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-soft">
+              Start a memory and save it as a draft — it will wait here for you.
+            </p>
+          </div>
         )}
       </div>
     </div>
@@ -1042,98 +1184,53 @@ export default function Journal() {
 
   const searchView = (
     <div className="mx-auto max-w-2xl">
-      <header className="mb-8">
-        <button
-          type="button"
-          onClick={() => setTab('home')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden />
-          Home
-        </button>
-        <div className="mt-6">
-          <h1 className="font-display text-3xl text-ink">Search</h1>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Journal"
+        title="Search"
+        subtitle="Turn over a clue and the memory comes back."
+      />
 
-      <section className="mb-8" aria-label="Recall a memory">
+      <section aria-label="Recall a memory" className="rounded-card border border-line bg-surface p-6 shadow-soft lc-themed sm:p-8">
         <div className="flex items-center gap-3">
-          <Search className="size-4 shrink-0 text-ink-faint" aria-hidden />
-          <span className="font-display text-xl font-medium italic text-ink">What do you remember?</span>
+          <Search className="size-5 shrink-0 text-sienna" aria-hidden />
+          <span className="font-hand text-3xl font-medium leading-tight text-ink">
+            What do you remember?
+          </span>
         </div>
-        <p className="mt-1.5 pl-7 text-sm leading-relaxed text-ink-faint">
+        <p className="mt-2 pl-8 text-sm leading-relaxed text-ink-soft">
           Search your memories using the clues you remember.
         </p>
-        <p className="mt-3 flex flex-wrap gap-x-6 gap-y-1 pl-7 text-sm italic text-ink-faint" aria-hidden>
-          <span>coffee · Hyderabad · interview</span>
-          <span>walking</span>
-          <span>college · Rahul</span>
-        </p>
+        <div className="mt-5 border-t border-dashed border-line pt-4" aria-hidden>
+          <p className="font-caveat text-lg leading-relaxed text-ink-faint">
+            coffee · Hyderabad · interview
+            <br />
+            walking · that red apartment · Rahul
+          </p>
+        </div>
       </section>
     </div>
   )
 
-  const bottomNav = (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-paper/90 backdrop-blur lc-themed">
-      <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-4">
-        <button
-          type="button"
-          onClick={() => { setTab('memories'); setView('memories') }}
-          className={`flex flex-col items-center gap-1 transition-colors ${tab === 'memories' ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
-        >
-          <BookOpen className="size-5" aria-hidden />
-          <span className="text-[11px] font-medium">Memories</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('search')}
-          className={`flex flex-col items-center gap-1 transition-colors ${tab === 'search' ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
-        >
-          <Search className="size-5" aria-hidden />
-          <span className="text-[11px] font-medium">Search</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { setTab('drafts'); setView('memories') }}
-          className={`flex flex-col items-center gap-1 transition-colors ${tab === 'drafts' ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
-        >
-          <PenLine className="size-5" aria-hidden />
-          <span className="text-[11px] font-medium">Drafts</span>
-        </button>
-      </div>
-    </nav>
-  )
-
   const trashView = (
     <div className="mx-auto max-w-2xl">
-      <header className="mb-8">
-        <button
-          type="button"
-          onClick={() => { setView('memories'); setTab('memories') }}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden />
-          Back to memories
-        </button>
-        <div className="mt-6 flex items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-3xl text-ink">Trash</h1>
-            <p className="mt-2 font-display text-base italic text-ink-soft">
-              Trashed memories stay here for 30 days before disappearing.
-            </p>
-          </div>
-          {trashTotal > 0 && (
-            <Button
-              variant="ghost"
-              onClick={handleEmptyTrash}
-              loading={actionId === 'empty'}
-              className="text-xs text-danger"
-            >
-              Empty trash
-            </Button>
-          )}
+      <PageHeader
+        eyebrow="Journal"
+        title="Trash"
+        subtitle="Trashed memories stay here for 30 days before disappearing."
+      />
+
+      {trashTotal > 0 && (
+        <div className="-mt-2 mb-6 flex justify-end">
+          <Button
+            variant="ghost"
+            onClick={handleEmptyTrash}
+            loading={actionId === 'empty'}
+            className="text-xs text-danger"
+          >
+            Empty trash
+          </Button>
         </div>
-      </header>
+      )}
 
       {pageError && <Alert variant="error" className="mt-6">{pageError}</Alert>}
 
@@ -1144,10 +1241,10 @@ export default function Journal() {
           </div>
         ) : trashed.length === 0 ? (
           <div className="py-16 text-center">
-            <span className="mx-auto mb-6 flex size-10 items-center justify-center rounded-full text-ink-faint">
+            <span className="mx-auto mb-6 flex size-10 items-center justify-center rounded-full text-sienna">
               <Trash2 className="size-5" aria-hidden />
             </span>
-            <h2 className="font-display text-2xl text-ink">Trash is empty</h2>
+            <h2 className="font-hand text-3xl font-medium text-ink">Trash is empty.</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-soft">
               Memories you delete will rest here before saying goodbye.
             </p>
@@ -1165,12 +1262,12 @@ export default function Journal() {
                           <div className="font-display text-3xl leading-none text-ink">
                             {parts.day}
                           </div>
-                          <div className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">
+                          <div className="mt-1.5 font-plxmono text-[9.5px] font-medium uppercase tracking-[0.16em] text-ink-faint">
                             {parts.weekday}
                           </div>
                         </>
                       ) : (
-                        <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">
+                        <div className="font-plxmono text-[9.5px] font-medium uppercase tracking-[0.16em] text-ink-faint">
                           later
                         </div>
                       )}
@@ -1231,12 +1328,12 @@ export default function Journal() {
     </div>
   )
 
-  if (view === 'trash') return <>{trashView}<div className="pb-20" />{bottomNav}</>
+  if (editingId !== null) return <>{editorCard}{editorActions}<div className="pb-32" /></>
+  if (view === 'trash') return <>{trashView}<div className="pb-20" /></>
   if (viewing) return <>{readView}<div className="pb-20" /></>
-  if (editor !== null) return <>{editorCard}{editorActions}<div className="pb-32" /></>
-  if (tab === 'home') return <>{homeView}<div className="pb-20" />{bottomNav}</>
-  if (tab === 'memories') return <>{memoriesView}<div className="pb-20" />{bottomNav}</>
-  if (tab === 'drafts') return <>{draftsView}<div className="pb-20" />{bottomNav}</>
-  if (tab === 'search') return <>{searchView}<div className="pb-20" />{bottomNav}</>
-  return <>{homeView}<div className="pb-20" />{bottomNav}</>
+  if (tab === 'home') return <>{homeView}<div className="pb-20" /></>
+  if (tab === 'memories') return <>{memoriesView}<div className="pb-20" /></>
+  if (tab === 'drafts') return <>{draftsView}<div className="pb-20" /></>
+  if (tab === 'search') return <>{searchView}<div className="pb-20" /></>
+  return <>{homeView}<div className="pb-20" /></>
 }

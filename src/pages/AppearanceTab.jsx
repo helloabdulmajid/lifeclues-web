@@ -2,6 +2,7 @@ import { Check, Clock, Monitor, Moon, Sun } from 'lucide-react'
 import { useTheme } from '../theme/ThemeContext'
 import { useAuth } from '../auth/AuthContext'
 import { accountApi } from '../api/client'
+import PageHeader from '../ui/PageHeader'
 
 const MODE_ICONS = {
   light: Sun,
@@ -13,6 +14,14 @@ const TIME_FORMATS = [
   { id: 'H12', label: '12-hour', example: '7:30 PM' },
   { id: 'H24', label: '24-hour', example: '19:30' },
 ]
+
+function SectionLabel({ children }) {
+  return (
+    <p className="mb-3 font-plxmono text-[10px] font-medium uppercase tracking-[0.22em] text-ink-faint">
+      {children}
+    </p>
+  )
+}
 
 export default function AppearanceTab() {
   const { theme, mode, setTheme, setMode, themes, modes } = useTheme()
@@ -30,18 +39,14 @@ export default function AppearanceTab() {
 
   return (
     <div>
-      <div className="rounded-card border border-line bg-surface shadow-card lc-themed">
-        <div className="border-b border-line p-6 sm:p-8">
-          <h2 className="font-display text-xl font-semibold text-ink">Appearance</h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            Choose how LifeClues looks and feels.
-          </p>
-        </div>
+      <PageHeader
+        title="Appearance"
+        subtitle="Choose how LifeClues looks and feels."
+      />
 
+      <div className="rounded-card border border-line bg-surface shadow-card lc-themed">
         <div className="p-6 sm:p-8">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-            Theme
-          </p>
+          <SectionLabel>Theme</SectionLabel>
           <div className="space-y-2">
             {themes.map((t) => {
               const selected = t.id === theme
@@ -50,6 +55,7 @@ export default function AppearanceTab() {
                   key={t.id}
                   type="button"
                   onClick={() => setTheme(t.id)}
+                  aria-pressed={selected}
                   className={`flex w-full items-center gap-3 rounded-soft border p-3 text-left transition-colors ${
                     selected
                       ? 'border-accent bg-accent-soft'
@@ -74,7 +80,7 @@ export default function AppearanceTab() {
             })}
           </div>
 
-          <p className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+          <p className="mb-2 mt-7 font-plxmono text-[10px] font-medium uppercase tracking-[0.22em] text-ink-faint">
             Mode
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -99,7 +105,7 @@ export default function AppearanceTab() {
             })}
           </div>
 
-          <p className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+          <p className="mb-2 mt-7 font-plxmono text-[10px] font-medium uppercase tracking-[0.22em] text-ink-faint">
             Time Format
           </p>
           <div className="grid grid-cols-2 gap-2">

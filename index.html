@@ -12,22 +12,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=IBM+Plex+Mono:wght@500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <script>
       /* Apply saved appearance before first paint to avoid flashing. */
       ;(function () {
         try {
-          var theme = localStorage.getItem('lifeclues.theme') || 'paper'
-          var mode = localStorage.getItem('lifeclues.mode') || 'system'
+          var mode = localStorage.getItem('lifeclues.mode') || 'light'
           var resolved =
             mode === 'system'
               ? window.matchMedia('(prefers-color-scheme: dark)').matches
                 ? 'dark'
                 : 'light'
               : mode
-          document.documentElement.setAttribute('data-theme', theme)
+          document.documentElement.setAttribute('data-theme', 'paper')
           document.documentElement.setAttribute('data-mode', resolved)
         } catch (e) {
           /* ignore */

@@ -4,8 +4,8 @@ import { MailCheck } from 'lucide-react'
 import { authApi } from '../api/client'
 import { ApiError } from '../api/http'
 import AuthLayout from '../ui/AuthLayout'
-import Button from '../ui/Button'
-import Alert from '../ui/Alert'
+import BrandButton from '../ui/BrandButton'
+import BrandAlert from '../ui/BrandAlert'
 
 export default function CheckEmail() {
   const location = useLocation()
@@ -29,12 +29,13 @@ export default function CheckEmail() {
 
   return (
     <AuthLayout
+      eyebrow="Nearly there"
       title="Check your inbox"
       subtitle="One small step and your book is open."
       footer={
         <>
           Already confirmed?{' '}
-          <Link to="/login" className="font-semibold text-accent hover:underline">
+          <Link to="/login" className="font-semibold" style={{ color: '#b4501e' }}>
             Sign in
           </Link>
         </>
@@ -42,38 +43,49 @@ export default function CheckEmail() {
     >
       <div className="space-y-4 text-center">
         <div className="flex justify-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
+          <span
+            className="flex size-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: '#f3e2d6', color: '#b4501e' }}
+          >
             <MailCheck className="size-6" aria-hidden />
           </span>
         </div>
-        <p className="text-sm leading-relaxed text-ink-soft">
+
+        <p className="text-sm leading-relaxed text-lnd-mut">
           {email ? (
             <>
-              We sent a verification link to <span className="font-semibold text-ink">{email}</span>.
-              Click it to confirm your address, then you can sign in and write your little clues.
+              We sent a verification link to{' '}
+              <span className="font-semibold text-lnd-ink">{email}</span>. Click it to confirm
+              your address, then you can sign in and write your little clues.
             </>
           ) : (
             'We sent a verification link to your email address. Click it to confirm, then you can sign in and write your little clues.'
           )}
         </p>
-        <div className="rounded-soft border border-line bg-surface p-3 text-xs leading-relaxed text-ink-faint">
-          The link works for 30 minutes. If it doesn't arrive, check your spam folder.
+
+        <div className="rounded-xl border border-lnd-line bg-lnd-deep/50 p-3 font-plxmono text-[11px] uppercase tracking-[0.08em] leading-relaxed text-lnd-faint">
+          The link works for 30 minutes. If it doesn&rsquo;t arrive, check your spam folder.
         </div>
+
         <div className="space-y-2">
           {resend.state === 'error' ? (
-            <Alert variant="error" className="text-left">{resend.message}</Alert>
+            <BrandAlert variant="error" className="text-left">
+              {resend.message}
+            </BrandAlert>
           ) : resend.state === 'done' ? (
-            <Alert variant="success" className="text-left">{resend.message}</Alert>
+            <BrandAlert variant="success" className="text-left">
+              {resend.message}
+            </BrandAlert>
           ) : null}
-          <Button
+          <BrandButton
             type="button"
-            variant="ghost"
+            variant="outline"
             className="w-full"
             onClick={handleResend}
             disabled={resend.state === 'sending'}
           >
             {resend.state === 'sending' ? 'Sending…' : "Didn't get it? Send again"}
-          </Button>
+          </BrandButton>
         </div>
       </div>
     </AuthLayout>

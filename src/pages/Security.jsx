@@ -177,24 +177,24 @@ export default function Security() {
         </form>
       </div>
 
-      <div className="mt-6 rounded-card border border-red-200 bg-red-50 shadow-card lc-themed dark:border-red-900/40 dark:bg-red-950/30">
-        <div className="border-b border-red-200 p-6 sm:p-8 dark:border-red-900/40">
+      <div className="mt-6 rounded-card border border-danger-soft bg-danger-soft/25 shadow-card lc-themed">
+        <div className="border-b border-danger-soft p-6 sm:p-8">
           <div className="flex items-center gap-4">
-            <span className="flex size-11 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
+            <span className="flex size-11 items-center justify-center rounded-full bg-danger-soft text-danger">
               <AlertTriangle className="size-6" aria-hidden />
             </span>
             <div>
-              <h2 className="font-display text-xl font-semibold text-red-800 dark:text-red-200">
+              <h2 className="font-display text-xl font-semibold text-ink">
                 Delete account
               </h2>
-              <p className="text-sm text-red-600 dark:text-red-300">
+              <p className="text-sm text-danger">
                 Permanently remove your account and all data
               </p>
             </div>
           </div>
         </div>
         <div className="p-6 sm:p-8">
-          <p className="text-sm text-red-700 dark:text-red-300">
+          <p className="text-sm leading-relaxed text-ink-soft">
             Once you delete your account, there is no going back. This action is permanent.
           </p>
           <div className="mt-4 flex justify-end">
@@ -210,9 +210,9 @@ export default function Security() {
       </div>
 
       {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
           <div
-            className="w-full max-w-md rounded-card border border-line bg-surface shadow-xl lc-themed"
+            className="w-full max-w-md rounded-card border border-line bg-surface shadow-card lc-themed"
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-dialog-title"

@@ -4,9 +4,9 @@ import { MailCheck } from 'lucide-react'
 import { authApi } from '../api/client'
 import { ApiError } from '../api/http'
 import AuthLayout from '../ui/AuthLayout'
-import Button from '../ui/Button'
-import Alert from '../ui/Alert'
-import { TextField } from '../ui/Field'
+import BrandButton from '../ui/BrandButton'
+import BrandAlert from '../ui/BrandAlert'
+import { BrandTextField } from '../ui/BrandField'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -40,12 +40,13 @@ export default function ForgotPassword() {
 
   return (
     <AuthLayout
+      eyebrow="Password help"
       title="Forgot your password?"
       subtitle="We'll email you a link to set a new one."
       footer={
         <>
           Remembered it?{' '}
-          <Link to="/login" className="font-semibold text-accent hover:underline">
+          <Link to="/login" className="font-semibold" style={{ color: '#b4501e' }}>
             Back to sign in
           </Link>
         </>
@@ -54,18 +55,21 @@ export default function ForgotPassword() {
       {started ? (
         <div className="space-y-4 text-center">
           <div className="flex justify-center">
-            <span className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
+            <span
+              className="flex size-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: '#f3e2d6', color: '#b4501e' }}
+            >
               <MailCheck className="size-6" aria-hidden />
             </span>
           </div>
-          <h2 className="font-display text-xl font-semibold text-ink">Check your inbox</h2>
-          <p className="text-sm leading-relaxed text-ink-soft">
+          <h2 className="font-caveat text-3xl leading-none text-lnd-ink">Check your inbox</h2>
+          <p className="text-sm leading-relaxed text-lnd-mut">
             If that email has a LifeClues account, a reset link is on its way. It works for 30
             minutes — if it doesn't arrive, check your spam folder.
           </p>
-          <Button
+          <BrandButton
             type="button"
-            variant="ghost"
+            variant="outline"
             className="w-full"
             onClick={() => {
               setStarted(false)
@@ -73,12 +77,12 @@ export default function ForgotPassword() {
             }}
           >
             Send it again
-          </Button>
+          </BrandButton>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          {error && <Alert variant="error">{error}</Alert>}
-          <TextField
+          {error && <BrandAlert variant="error">{error}</BrandAlert>}
+          <BrandTextField
             label="Email"
             id="email"
             type="email"
@@ -88,9 +92,9 @@ export default function ForgotPassword() {
             onChange={(e) => setEmail(e.target.value)}
             autoFocus
           />
-          <Button type="submit" className="w-full" size="lg" loading={loading}>
+          <BrandButton type="submit" className="w-full" size="lg" loading={loading}>
             Send reset link
-          </Button>
+          </BrandButton>
         </form>
       )}
     </AuthLayout>
