@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f1e6" id="lc-theme-color" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta
       name="description"
       content="LifeClues — your private, book-like memory journal. Small clues. Big memories."
@@ -28,6 +33,9 @@
               : mode
           document.documentElement.setAttribute('data-theme', 'paper')
           document.documentElement.setAttribute('data-mode', resolved)
+          /* Keep the installed app's status bar on the Paper surface. */
+          var meta = document.getElementById('lc-theme-color')
+          if (meta) meta.setAttribute('content', resolved === 'dark' ? '#14110c' : '#f6f1e6')
         } catch (e) {
           /* ignore */
         }

@@ -51,7 +51,7 @@ export default function LandingFooter() {
             </p>
             <div className="mt-3 flex gap-2.5">
               <a
-                href="https://github.com/helloabdulmajid"
+                href="#about"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="GitHub"

@@ -3,6 +3,7 @@ import Hero from './landing/Hero'
 import { FeaturesRow, StorySection, Closing } from './landing/Sections'
 import AppPreview from './landing/AppPreview'
 import LandingFooter from './landing/LandingFooter'
+import InstallPrompt from '../ui/InstallPrompt'
 
 export default function Landing() {
   return (
@@ -16,6 +17,7 @@ export default function Landing() {
         <Closing />
       </main>
       <LandingFooter />
+      <InstallPrompt />
     </div>
   )
 }

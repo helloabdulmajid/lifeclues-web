@@ -14,6 +14,7 @@ import Journal from './pages/Journal'
 import ProfileShell from './pages/ProfileShell'
 import Profile from './pages/Profile'
 import AppearanceTab from './pages/AppearanceTab'
+import InstallTab from './pages/InstallTab'
 import Security from './pages/Security'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
@@ -72,6 +73,7 @@ function App() {
               <Route path="profile" element={<ProfileShell />}>
                 <Route index element={<Profile />} />
                 <Route path="appearance" element={<AppearanceTab />} />
+                <Route path="app" element={<InstallTab />} />
                 <Route path="security" element={<Security />} />
               </Route>
             </Route>

@@ -29,6 +29,9 @@ export default function ProfileShell() {
         <NavLink to="/app/profile/appearance" className={tabClass}>
           Appearance
         </NavLink>
+        <NavLink to="/app/profile/app" className={tabClass}>
+          App
+        </NavLink>
         <NavLink to="/app/profile/security" className={tabClass}>
           Security
         </NavLink>

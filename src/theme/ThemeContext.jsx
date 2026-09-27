@@ -48,6 +48,19 @@ function resolveMode(mode) {
   return mode === 'system' ? (systemPrefersDark() ? 'dark' : 'light') : mode
 }
 
+// Paper & Book surfaces, mirrored from themes.css. Feeds <meta name="theme-color">
+// so the installed app's status bar matches Light/Dark/Auto.
+const PAPER_COLORS = { light: '#f6f1e6', dark: '#14110c' }
+
+function applyThemeColor(resolved) {
+  try {
+    const meta = document.getElementById('lc-theme-color')
+    if (meta) meta.setAttribute('content', PAPER_COLORS[resolved] || PAPER_COLORS.light)
+  } catch {
+    /* ignore */
+  }
+}
+
 const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
@@ -56,8 +69,10 @@ export function ThemeProvider({ children }) {
   const [mode, setModeState] = useState(() => readPref(MODE_KEY, 'light'))
 
   const apply = useCallback((t, m) => {
+    const resolved = resolveMode(m)
     document.documentElement.setAttribute('data-theme', t)
-    document.documentElement.setAttribute('data-mode', resolveMode(m))
+    document.documentElement.setAttribute('data-mode', resolved)
+    applyThemeColor(resolved)
   }, [])
 
   useEffect(() => {
