@@ -166,6 +166,8 @@ function MobileNav() {
 }
 
 export default function AppShell() {
+  const navigate = useNavigate()
+
   return (
     <JournalNavProvider>
       <div className="min-h-dvh bg-paper">

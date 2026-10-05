@@ -16,7 +16,7 @@ Here's what you can do with it right now:
 
 - **Write memories and drafts** — title, content, date, time, and tags. Drafts auto-save without enforcing structure; completed memories require at least one tag.
 - **Tag your memories** — add clues like people, places, feelings, or anything that helps you find the moment later.
-- **Browse your journal** — a tab-based view with Home (today + recent), Memories (all completed), and Search (full-text with tag and date filters).
+- **Browse your journal** — a tab-based view with Home (today + recent), Memories (all completed), Drafts, Search (find a memory by any word in it, or by a tag, person, place or category), and Trash.
 - **Read mode** — distraction-free reading view with auto-hiding controls. Tags are accessible from here too.
 - **Soft-delete with trash** — deleted memories go to Trash for 30 days before permanent removal. You can restore or permanently delete from there.
 - **Profile management** — update your display name, bio, and optional details like birthday, city, profession, and more.

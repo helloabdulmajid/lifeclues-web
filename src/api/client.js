@@ -49,12 +49,26 @@ export const accountApi = {
 }
 
 export const memoryApi = {
-  list({ limit = 50, offset = 0 } = {}) {
-    return api.get(`/api/memories?limit=${limit}&offset=${offset}`)
+  list({ limit = 50, offset = 0, sort = 'eventDate', order = 'desc', from, to, favorite, mood, tag, category, people, place } = {}) {
+    const params = new URLSearchParams({ limit, offset, sort, order })
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    if (favorite) params.set('favorite', true)
+    if (mood) params.set('mood', mood)
+    for (const [key, values] of [['tag', tag], ['category', category], ['people', people], ['place', place]]) {
+      if (Array.isArray(values)) values.forEach((v) => params.append(key, v))
+    }
+    return api.get(`/api/memories?${params.toString()}`)
   },
 
   listTrashed({ limit = 50, offset = 0 } = {}) {
     return api.get(`/api/memories/trash?limit=${limit}&offset=${offset}`)
+  },
+
+  search({ q, limit = 50, offset = 0 }) {
+    const params = new URLSearchParams({ limit, offset })
+    if (q) params.set('q', q)
+    return api.get(`/api/memories/search?${params.toString()}`)
   },
 
   create(payload) {
@@ -67,6 +81,10 @@ export const memoryApi = {
 
   changeStatus(id, status) {
     return api.patch(`/api/memories/${id}/status`, { status })
+  },
+
+  updateFlags(id, flags) {
+    return api.patch(`/api/memories/${id}/flags`, flags)
   },
 
   trash(id) {
@@ -87,5 +105,17 @@ export const memoryApi = {
 
   listTags() {
     return api.get('/api/tags')
+  },
+
+  listCategories() {
+    return api.get('/api/categories')
+  },
+
+  listPeople() {
+    return api.get('/api/people')
+  },
+
+  listPlaces() {
+    return api.get('/api/places')
   },
 }

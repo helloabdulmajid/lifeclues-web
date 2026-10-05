@@ -131,23 +131,7 @@
   }
 }
 
-.read-mode header {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.read-mode aside {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.read-mode.read-controls-visible header,
-.read-mode.read-controls-visible aside {
-  opacity: 1;
-  pointer-events: auto;
-}
+/* Read mode keeps the navbar always visible — no auto-hide of the header/sidebar. */
 
 /* Theme-independent brand logo colors. */
 .lc-logo-text {
