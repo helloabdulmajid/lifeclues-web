@@ -16,8 +16,10 @@ import {
   Search,
   SlidersHorizontal,
   Smile,
+  Star,
   Tag,
   Trash2,
+  User,
   Users,
   X,
 } from 'lucide-react'
@@ -1165,7 +1167,58 @@ export default function Journal() {
     )
   }
 
-  const memoryEntry = (memory, quiet) => {
+  // Memories/Archive page: every clue collapsed into one metadata row
+  // (favorite, pin, mood, category, people, place, tags) with line icons,
+  // capped so long entries stay scannable.
+  const memoryOneRow = (memory) => {
+    const clues = []
+    if (memory.mood) clues.push({ Icon: Smile, text: moodLabel(memory.mood), key: `mood-${memory.mood}` })
+    ;(memory.categories || []).forEach((c) =>
+      clues.push({ Icon: Star, text: c.name, key: c.id || `cat-${c.name}` })
+    )
+    ;(memory.people || []).forEach((p) =>
+      clues.push({ Icon: User, text: p.name, key: p.id || `person-${p.name}` })
+    )
+    ;(memory.places || []).forEach((p) =>
+      clues.push({ Icon: MapPin, text: p.name, key: p.id || `place-${p.name}` })
+    )
+    ;(memory.tags || []).forEach((t) =>
+      clues.push({ Icon: Tag, text: t.name, key: t.id || `tag-${t.name}` })
+    )
+    const MAX_ROW_CLUES = 5
+    const shown = clues.slice(0, MAX_ROW_CLUES)
+    const remaining = clues.length - shown.length
+    return (
+      <p className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-plxmono text-[11px] text-ink-faint">
+        {memory.eventTime && (
+          <span className="uppercase tracking-[0.12em]">{formatTime(memory.eventTime, user?.timeFormat)}</span>
+        )}
+        {memory.status === 'DRAFT' && (
+          <span className="font-medium text-sienna">
+            Draft{memory.updatedAt ? ` · updated ${timeAgo(memory.updatedAt)}` : ''}
+          </span>
+        )}
+        {memory.favorite && <Heart className="size-3 fill-current text-sienna" aria-label="Favorite" />}
+        {memory.pinned && <Pin className="size-3 fill-current" aria-label="Pinned" />}
+        {shown.map((chip) => {
+          const Icon = chip.Icon
+          return (
+            <span key={chip.key} className="inline-flex items-center gap-1 text-ink-soft">
+              <Icon className="size-3 text-ink-faint" aria-hidden />
+              {chip.text}
+            </span>
+          )
+        })}
+        {remaining > 0 && (
+          <span className="rounded-full border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-ink-soft">
+            +{remaining}
+          </span>
+        )}
+      </p>
+    )
+  }
+
+  const memoryEntry = (memory, quiet, oneRow = false) => {
     const parts = dayParts(memory.eventDate)
     const displayTitle = cleanTitle(memory.title) || 'Untitled memory'
     const excerpt = memoryExcerpt(memory.content)
@@ -1173,7 +1226,11 @@ export default function Journal() {
     return (
       <article
         key={memory.id}
-        className={`group relative ${isDraft ? 'cursor-pointer' : quiet ? '' : 'cursor-pointer rounded-card transition-colors hover:bg-surface/50'}`}
+        className={`group relative ${
+          oneRow
+            ? 'cursor-pointer rounded-card transition-colors hover:bg-surface/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+            : isDraft ? 'cursor-pointer' : quiet ? '' : 'cursor-pointer rounded-card transition-colors hover:bg-surface/50'
+        }`}
         onClick={isDraft ? () => startEdit(memory) : !quiet ? () => viewMemory(memory) : undefined}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (isDraft) startEdit(memory); else if (!quiet) viewMemory(memory) } }}
         role={isDraft || !quiet ? 'button' : undefined}
@@ -1206,7 +1263,9 @@ export default function Journal() {
                 className={`break-words font-hand leading-[1.15] transition-colors ${
                   quiet
                     ? 'text-lg font-medium leading-snug text-ink-faint'
-                    : 'text-[26px] font-medium text-ink sm:text-[28px]'
+                    : `text-[26px] font-medium text-ink sm:text-[28px]${
+                        oneRow ? ' group-hover:text-accent' : ''
+                      }`
                 }`}
               >
                 {displayTitle}
@@ -1224,8 +1283,8 @@ export default function Journal() {
                 {excerpt}
               </p>
             )}
-            {memoryMeta(memory)}
-            {clueChipsRow(memory)}
+            {oneRow ? memoryOneRow(memory) : memoryMeta(memory)}
+            {!oneRow && clueChipsRow(memory)}
           </div>
         </div>
         <div className="mt-7 h-px bg-line" aria-hidden />
@@ -1649,7 +1708,7 @@ export default function Journal() {
           </h2>
           <span className="h-px flex-1 bg-line-strong" aria-hidden />
         </div>
-        <div className="space-y-9">{entries.map((m) => memoryEntry(m, false))}</div>
+        <div className="space-y-11">{entries.map((m) => memoryEntry(m, false, true))}</div>
       </section>
     )
   }
@@ -1827,16 +1886,21 @@ export default function Journal() {
         <button
           type="button"
           onClick={() => setClueFiltersOpen((o) => !o)}
-          aria-pressed={clueFiltersOpen}
+          aria-pressed={clueFiltersOpen || hasClueFilters}
           aria-expanded={clueFiltersOpen}
           className={`flex items-center gap-1.5 rounded-soft border px-3 py-2 text-sm transition-colors ${
-            clueFiltersOpen || hasClueFilters
-              ? 'border-accent/50 bg-accent-soft text-ink'
-              : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
+            hasClueFilters
+              ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
+              : clueFiltersOpen
+                ? 'border-accent/50 bg-accent-soft text-ink'
+                : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
           }`}
         >
           <SlidersHorizontal className="size-4" aria-hidden />
           Clues
+          {hasClueFilters && (
+            <span className="ml-0.5 size-1.5 rounded-full bg-accent" aria-hidden />
+          )}
         </button>
 
         {hasActiveFilters && (
@@ -1899,7 +1963,7 @@ export default function Journal() {
             </h2>
             <span className="h-px flex-1 bg-line-strong" aria-hidden />
           </div>
-          <div className="space-y-9">{pinned.map((m) => memoryEntry(m, false))}</div>
+          <div className="space-y-11">{pinned.map((m) => memoryEntry(m, false, true))}</div>
         </div>
       )}
 
