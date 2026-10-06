@@ -16,6 +16,7 @@ import Profile from './pages/Profile'
 import AppearanceTab from './pages/AppearanceTab'
 import InstallTab from './pages/InstallTab'
 import Security from './pages/Security'
+import Feedback from './pages/Feedback'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import Contact from './pages/Contact'
@@ -75,6 +76,7 @@ function App() {
                 <Route path="appearance" element={<AppearanceTab />} />
                 <Route path="app" element={<InstallTab />} />
                 <Route path="security" element={<Security />} />
+                <Route path="feedback" element={<Feedback />} />
               </Route>
             </Route>
 

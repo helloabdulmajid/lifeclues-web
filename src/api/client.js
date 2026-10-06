@@ -48,6 +48,21 @@ export const accountApi = {
   },
 }
 
+export const feedbackApi = {
+  // Multipart: fields as text + optional screenshot file. The user id comes
+  // from the server-side session, never from this payload.
+  create({ category, subject, description, reproductionSteps, contactEmail, screenshot }) {
+    const form = new FormData()
+    form.append('category', category)
+    form.append('subject', subject)
+    form.append('description', description)
+    if (reproductionSteps) form.append('reproductionSteps', reproductionSteps)
+    if (contactEmail) form.append('contactEmail', contactEmail)
+    if (screenshot) form.append('screenshot', screenshot)
+    return api.postFormData('/api/feedback', form)
+  },
+}
+
 export const memoryApi = {
   list({ limit = 50, offset = 0, sort = 'eventDate', order = 'desc', from, to, favorite, mood, tag, category, people, place } = {}) {
     const params = new URLSearchParams({ limit, offset, sort, order })

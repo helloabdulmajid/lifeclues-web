@@ -22,7 +22,7 @@ export default function ProfileShell() {
         title="Profile"
         subtitle="About you, how LifeClues looks, and your account."
       />
-      <nav className="mb-6 flex w-fit gap-1 rounded-soft border border-line bg-surface p-1 lc-themed">
+      <nav className="mb-6 flex w-fit flex-wrap gap-1 rounded-soft border border-line bg-surface p-1 lc-themed">
         <NavLink to="/app/profile" end className={tabClass}>
           About
         </NavLink>
@@ -34,6 +34,9 @@ export default function ProfileShell() {
         </NavLink>
         <NavLink to="/app/profile/security" className={tabClass}>
           Security
+        </NavLink>
+        <NavLink to="/app/profile/feedback" className={tabClass}>
+          Feedback
         </NavLink>
       </nav>
       <Outlet />

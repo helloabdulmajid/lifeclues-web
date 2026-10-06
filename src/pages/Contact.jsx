@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Mail, PenLine } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Mail, PenLine } from 'lucide-react'
 
 export default function Contact() {
   return (
@@ -21,7 +21,25 @@ export default function Contact() {
           <p className="mt-2 text-sm text-ink-faint">Last updated: September 14, 2026</p>
 
           <div className="prose mt-8 space-y-6 text-ink-soft leading-relaxed">
-            <p>This page is coming soon. Stay tuned.</p>
+            <p>
+              Found a bug, have an idea, or want to shape what comes next? Send it
+              straight to us from your account — reports go directly to the
+              LifeClues inbox.
+            </p>
+            <p className="text-sm text-ink-faint">
+              You will be asked to sign in first if you are not already. Leaving an
+              email address on the form is optional — without one we cannot reply
+              directly, but we still read every report.
+            </p>
+            <p className="pt-2">
+              <Link
+                to="/app/profile/feedback"
+                className="inline-flex h-11 items-center gap-2 rounded-soft bg-accent px-5 text-sm font-semibold text-accent-ink shadow-soft transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Open Feedback &amp; Support
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            </p>
           </div>
         </article>
       </main>

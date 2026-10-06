@@ -116,18 +116,21 @@ async function parseResponse(res) {
   return data
 }
 
-async function request(path, { method = 'GET', body, auth = true } = {}) {
+async function request(path, { method = 'GET', body, auth = true, raw = false } = {}) {
   const headers = {}
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // `raw` bodies (FormData) must not set Content-Type — the browser adds the
+  // multipart boundary itself.
+  if (body !== undefined && !raw) headers['Content-Type'] = 'application/json'
   if (auth) {
     const token = tokenStore.accessToken()
     if (token) headers['Authorization'] = `Bearer ${token}`
   }
+  const payload = body === undefined ? undefined : raw ? body : JSON.stringify(body)
 
   let res = await doFetch(path, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: payload,
   })
 
   if (res.status === 401 && auth) {
@@ -142,7 +145,7 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
       res = await doFetch(path, {
         method,
         headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: payload,
       }, 1)
     } catch (error) {
       // Only clear the saved session when the refresh was genuinely rejected
@@ -166,6 +169,8 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
 export const api = {
   get: (path) => request(path),
   post: (path, body, { auth = true } = {}) => request(path, { method: 'POST', body, auth }),
+  // Multipart upload (e.g. feedback screenshot) — FormData passes through untouched.
+  postFormData: (path, formData) => request(path, { method: 'POST', body: formData, raw: true }),
   put: (path, body) => request(path, { method: 'PUT', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   del: (path) => request(path, { method: 'DELETE' }),

@@ -10,8 +10,13 @@ export default function BrandLockup({ className = '' }) {
         <LeafMark className="size-5" />
       </span>
       <span className="flex flex-col leading-none">
-        <span className="font-grotesk text-[15px] font-semibold tracking-tight text-lnd-ink">
-          LifeClues
+        <span className="flex items-center gap-2">
+          <span className="font-grotesk text-[15px] font-semibold tracking-tight text-lnd-ink">
+            LifeClues
+          </span>
+          <span className="rounded-full border border-lnd-line bg-lnd-card px-2 py-0.5 font-plxmono text-[9px] uppercase tracking-[0.16em] text-lnd-faint">
+            Beta
+          </span>
         </span>
         <span className="mt-1 font-plxmono text-[8.5px] uppercase tracking-[0.16em] text-lnd-faint">
           Small Clues. Big Memories.
