@@ -312,6 +312,38 @@ export default function Journal() {
   const [editPeopleOpen, setEditPeopleOpen] = useState(false)
   const [editPlacesOpen, setEditPlacesOpen] = useState(false)
   const [editMoodOpen, setEditMoodOpen] = useState(false)
+  const moodEditorRef = useRef(null)
+  const categoriesEditorRef = useRef(null)
+  const peopleEditorRef = useRef(null)
+  const placesEditorRef = useRef(null)
+
+  // Exactly one metadata selector (mood / categories / people / places / tags)
+  // may be open at a time — opening one closes the others.
+  const editorPanelSetters = {
+    tags: setEditTagsOpen,
+    mood: setEditMoodOpen,
+    categories: setEditCategoriesOpen,
+    people: setEditPeopleOpen,
+    places: setEditPlacesOpen,
+  }
+  const closeAllEditors = () => {
+    setEditTagsOpen(false)
+    setEditMoodOpen(false)
+    setEditCategoriesOpen(false)
+    setEditPeopleOpen(false)
+    setEditPlacesOpen(false)
+  }
+  const toggleEditor = (panel) => {
+    const isOpen = {
+      tags: editTagsOpen,
+      mood: editMoodOpen,
+      categories: editCategoriesOpen,
+      people: editPeopleOpen,
+      places: editPlacesOpen,
+    }[panel]
+    closeAllEditors()
+    if (!isOpen) editorPanelSetters[panel](true)
+  }
 
   const autoGrow = () => {
     const el = contentRef.current
@@ -365,9 +397,24 @@ export default function Journal() {
   ])
 
   useEffect(() => {
-    if (!editTagsOpen) return
-    const handleMouseDown = (e) => {
-      if (tagEditorRef.current && !tagEditorRef.current.contains(e.target)) {
+    const openPanel = [
+      ['tags', editTagsOpen],
+      ['mood', editMoodOpen],
+      ['categories', editCategoriesOpen],
+      ['people', editPeopleOpen],
+      ['places', editPlacesOpen],
+    ].find(([, open]) => open)?.[0]
+    if (!openPanel) return
+    const editorRefs = {
+      tags: tagEditorRef,
+      mood: moodEditorRef,
+      categories: categoriesEditorRef,
+      people: peopleEditorRef,
+      places: placesEditorRef,
+    }
+    // Committed on outside-click so half-typed input is never silently lost.
+    const flushPending = (panel) => {
+      if (panel === 'tags') {
         const pending = (tagInputRef.current?.value || '').trim()
         if (pending && pending.length <= 50) {
           setForm((f) => {
@@ -376,12 +423,31 @@ export default function Journal() {
           })
           setTagInput('')
         }
-        setEditTagsOpen(false)
+      } else if (panel !== 'mood') {
+        const pending = (clueInput[panel] || '').trim()
+        if (pending) addClue(panel)(pending)
+      }
+    }
+    const handleMouseDown = (e) => {
+      const toggleEl = e.target.closest ? e.target.closest('[data-editor-toggle]') : null
+      if (toggleEl) {
+        // Same toggle: let its own click decide (close), or the close would
+        // race the click and immediately reopen. Different toggle: flush the
+        // open panel and close so the click can open the other one.
+        if (toggleEl.dataset.editorToggle === openPanel) return
+        flushPending(openPanel)
+        closeAllEditors()
+        return
+      }
+      const ref = editorRefs[openPanel]
+      if (ref.current && !ref.current.contains(e.target)) {
+        flushPending(openPanel)
+        closeAllEditors()
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [editTagsOpen])
+  }, [editTagsOpen, editMoodOpen, editCategoriesOpen, editPeopleOpen, editPlacesOpen, clueInput, form])
 
   useEffect(() => {
     if (!viewing || editingId !== null) return
@@ -641,6 +707,7 @@ export default function Journal() {
     <button
       type="button"
       onClick={onClick}
+      data-editor-toggle={label}
       className={`flex size-7 shrink-0 items-center justify-center rounded-full transition-colors ${active ? 'text-accent hover:bg-accent-soft' : 'text-ink-faint hover:bg-surface-2 hover:text-ink'}`}
       title={`${open ? 'Hide' : 'Show'} ${title}`}
       aria-label={`Toggle ${label}`}
@@ -650,7 +717,7 @@ export default function Journal() {
     </button>
   )
 
-  const clueEditor = (key, userList, placeholder) => {
+  const clueEditor = (key, userList, placeholder, editorRef) => {
     const values = form[key] || []
     const input = (clueInput[key] || '').trimStart()
     const suggestions = clueSuggestions(key, userList)
@@ -663,7 +730,7 @@ export default function Journal() {
       }
     }
     return (
-      <div className="relative">
+      <div ref={editorRef} className="relative">
         <div className="flex flex-wrap items-center gap-1.5 rounded-card border border-line bg-transparent px-3 py-2 lc-themed">
           {values.map((v, i) => (
             <span
@@ -1169,21 +1236,21 @@ export default function Journal() {
 
   const editorCard = (
     <section className="pb-2">
-      <div className="mb-5 flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent lc-themed">
-          <PenLine className="size-5" aria-hidden />
-        </span>
-        <div>
-          <h2 className="font-display text-xl font-semibold text-ink">
-            {editingId === 'new' ? 'Write a memory' : 'Edit memory'}
-          </h2>
-          {editingId !== 'new' && (
+      {editingId !== 'new' && (
+        <div className="mb-5 flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent lc-themed">
+            <PenLine className="size-5" aria-hidden />
+          </span>
+          <div>
+            <h2 className="font-display text-xl font-semibold text-ink">
+              Edit memory
+            </h2>
             <p className="text-xs text-ink-soft">
               Anything can change — this is your memory.
             </p>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {saveError && <Alert variant="error" className="mb-5">{saveError}</Alert>}
 
@@ -1251,7 +1318,7 @@ export default function Journal() {
             {iconToggleButton(
               editMoodOpen,
               Boolean(form.mood),
-              () => setEditMoodOpen((o) => !o),
+              () => toggleEditor('mood'),
               'mood',
               'mood',
               Smile
@@ -1259,7 +1326,7 @@ export default function Journal() {
             {iconToggleButton(
               editCategoriesOpen,
               form.categories.length > 0,
-              () => setEditCategoriesOpen((o) => !o),
+              () => toggleEditor('categories'),
               'category tags',
               'categories',
               Folder
@@ -1267,7 +1334,7 @@ export default function Journal() {
             {iconToggleButton(
               editPeopleOpen,
               form.people.length > 0,
-              () => setEditPeopleOpen((o) => !o),
+              () => toggleEditor('people'),
               'people tags',
               'people',
               Users
@@ -1275,7 +1342,7 @@ export default function Journal() {
             {iconToggleButton(
               editPlacesOpen,
               form.places.length > 0,
-              () => setEditPlacesOpen((o) => !o),
+              () => toggleEditor('places'),
               'place tags',
               'places',
               MapPin
@@ -1284,7 +1351,7 @@ export default function Journal() {
             {iconToggleButton(
               editTagsOpen,
               form.tags.length > 0,
-              () => setEditTagsOpen((o) => !o),
+              () => toggleEditor('tags'),
               'tags',
               'tags',
               Tag
@@ -1351,7 +1418,7 @@ export default function Journal() {
         )}
 
         {editMoodOpen && (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div ref={moodEditorRef} className="flex flex-wrap items-center gap-1.5">
             {MOODS.map((m) => (
               <button
                 key={m}
@@ -1369,13 +1436,13 @@ export default function Journal() {
             ))}
           </div>
         )}
-        {editCategoriesOpen && clueEditor('categories', userCategories, 'Add category tags…')}
-        {editPeopleOpen && clueEditor('people', userPeople, 'Add people tags…')}
-        {editPlacesOpen && clueEditor('places', userPlaces, 'Add place tags…')}
+        {editCategoriesOpen && clueEditor('categories', userCategories, 'Add category tags…', categoriesEditorRef)}
+        {editPeopleOpen && clueEditor('people', userPeople, 'Add people tags…', peopleEditorRef)}
+        {editPlacesOpen && clueEditor('places', userPlaces, 'Add place tags…', placesEditorRef)}
 
         <Field
           id="title"
-          hint="Leave it blank and we'll write one from your words."
+          hint={<span className="hidden sm:inline">Leave it blank and we'll write one from your words.</span>}
         >
           <input
             id="title"
