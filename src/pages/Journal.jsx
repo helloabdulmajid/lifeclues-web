@@ -3,10 +3,13 @@ import { useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowUpDown,
   BookOpen,
+  Check,
   Feather,
   Folder,
   Heart,
+  ListFilter,
   MapPin,
   MoreHorizontal,
   Pencil,
@@ -58,10 +61,76 @@ const MOOD_LABELS = {
   NEUTRAL: 'Neutral',
 }
 
+// Shared by the desktop selects and the mobile sort bottom sheet.
+const SORT_OPTIONS = [
+  { value: 'eventDate', label: 'Event date' },
+  { value: 'createdAt', label: 'Date created' },
+  { value: 'updatedAt', label: 'Last edited' },
+  { value: 'eventTime', label: 'Event time' },
+]
+
+const ORDER_OPTIONS = [
+  { value: 'desc', label: 'Newest first' },
+  { value: 'asc', label: 'Oldest first' },
+]
+
 const moodLabel = (mood) => (mood ? (MOOD_LABELS[mood] ?? mood.toLowerCase()) : '')
 
 const filterControlClass =
   'rounded-soft border border-line-strong bg-surface px-3 py-2 text-sm text-ink transition-colors focus:outline-2 focus:outline-offset-1 focus:border-accent focus:outline-accent'
+
+// Mobile bottom-sheet controls: bigger touch targets, 16px text so iOS
+// doesn't zoom the field on focus.
+const sheetControlClass =
+  'rounded-soft border border-line-strong bg-surface px-3 py-3 text-base text-ink transition-colors focus:outline-2 focus:outline-offset-1 focus:border-accent focus:outline-accent'
+
+// Tablet: same controls as desktop but with comfortable touch sizing —
+// no bottom sheets needed at this width.
+const tabletControlClass =
+  'rounded-soft border border-line-strong bg-surface px-3.5 py-3 text-base text-ink transition-colors focus:outline-2 focus:outline-offset-1 focus:border-accent focus:outline-accent'
+
+// Bottom sheet used by the mobile sort/filter controls on the Memories page.
+// Dismisses via backdrop, close button, or Escape; locks body scroll while open.
+function MobileSheet({ title, onClose, children }) {
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 sm:hidden" role="dialog" aria-modal="true" aria-label={title}>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={`Close ${title}`}
+        className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
+      />
+      <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-card border-t border-line bg-surface px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-card lc-themed">
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line-strong" aria-hidden />
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="font-plxmono text-[11px] uppercase tracking-[0.18em] text-ink-faint">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={`Close ${title}`}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink-soft transition-colors hover:text-ink"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        </div>
+        <div className="space-y-4 pb-2">{children}</div>
+      </div>
+    </div>
+  )
+}
 
 function todayString() {
   const d = new Date()
@@ -217,6 +286,8 @@ export default function Journal() {
     places: [],
   })
   const [clueFiltersOpen, setClueFiltersOpen] = useState(false)
+  // Mobile-only bottom sheet on the Memories page: null | 'sort' | 'filters' | 'clues'
+  const [mobileSheet, setMobileSheet] = useState(null)
   const [filterClueInput, setFilterClueInput] = useState({ tags: '', categories: '', people: '', places: '' })
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -261,6 +332,25 @@ export default function Journal() {
     setListFilters({ field: 'eventDate', order: 'desc', from: '', to: '', favoritesOnly: false,
       mood: '', tags: [], categories: [], people: [], places: [] })
 
+  // Zero-result escape hatch: clears every filtering criterion (dates,
+  // favorites, clues) but deliberately keeps the user's sort/order — sort
+  // changes order, it can never be why the list is empty.
+  const resetAllCriteria = () =>
+    setListFilters((f) => ({ ...f, from: '', to: '', favoritesOnly: false,
+      mood: '', tags: [], categories: [], people: [], places: [] }))
+
+  // Like hasActiveFilters but excludes sort/order — used for the empty-state
+  // copy and the Reset all action.
+  const hasFilterCriteria =
+    listFilters.from !== '' ||
+    listFilters.to !== '' ||
+    listFilters.favoritesOnly ||
+    listFilters.mood !== '' ||
+    listFilters.tags.length > 0 ||
+    listFilters.categories.length > 0 ||
+    listFilters.people.length > 0 ||
+    listFilters.places.length > 0
+
   const hasActiveFilters =
     listFilters.field !== 'eventDate' ||
     listFilters.order !== 'desc' ||
@@ -279,6 +369,13 @@ export default function Journal() {
     listFilters.categories.length > 0 ||
     listFilters.people.length > 0 ||
     listFilters.places.length > 0
+
+  // Subtle active indicators for the compact mobile control row.
+  const sortActive = listFilters.field !== 'eventDate' || listFilters.order !== 'desc'
+  // Counted for the Filters button only — clue filters live in their own sheet.
+  const activeFilterCount =
+    (listFilters.from ? 1 : 0) +
+    (listFilters.to ? 1 : 0)
 
   const viewing = viewId
     ? memories.find((m) => m.id === viewId) || trashed.find((m) => m.id === viewId) || null
@@ -1810,6 +1907,134 @@ export default function Journal() {
     </div>
   )
 
+  // Shared sort/filter controls for tablet and desktop — identical markup,
+  // only the touch sizing differs per device.
+  const filterControls = (controlClass, buttonClasses) => (
+    <>
+      <label className="flex flex-col gap-1.5">
+        <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">Sort by</span>
+        <select
+          value={listFilters.field}
+          onChange={(e) => updateListFilter('field', e.target.value)}
+          className={controlClass}
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">Order</span>
+        <select
+          value={listFilters.order}
+          onChange={(e) => updateListFilter('order', e.target.value)}
+          className={controlClass}
+        >
+          {ORDER_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">From</span>
+        <input
+          type="date"
+          value={listFilters.from}
+          onChange={(e) => updateListFilter('from', e.target.value)}
+          className={controlClass}
+        />
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">To</span>
+        <input
+          type="date"
+          value={listFilters.to}
+          onChange={(e) => updateListFilter('to', e.target.value)}
+          className={controlClass}
+        />
+      </label>
+
+      <button
+        type="button"
+        onClick={() => updateListFilter('favoritesOnly', !listFilters.favoritesOnly)}
+        aria-pressed={listFilters.favoritesOnly}
+        className={`flex items-center gap-1.5 rounded-soft border transition-colors ${buttonClasses} ${
+          listFilters.favoritesOnly
+            ? 'border-sienna/50 bg-sienna-soft text-ink'
+            : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
+        }`}
+      >
+        <Heart className={`size-4 ${listFilters.favoritesOnly ? 'fill-current text-sienna' : ''}`} aria-hidden />
+        Favorites only
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setClueFiltersOpen((o) => !o)}
+        aria-pressed={clueFiltersOpen || hasClueFilters}
+        aria-expanded={clueFiltersOpen}
+        className={`flex items-center gap-1.5 rounded-soft border transition-colors ${buttonClasses} ${
+          hasClueFilters
+            ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
+            : clueFiltersOpen
+              ? 'border-accent/50 bg-accent-soft text-ink'
+              : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
+        }`}
+      >
+        <SlidersHorizontal className="size-4" aria-hidden />
+        Clues
+        {hasClueFilters && (
+          <span className="ml-0.5 size-1.5 rounded-full bg-accent" aria-hidden />
+        )}
+      </button>
+
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={resetListFilters}
+          className="font-plxmono text-[10px] uppercase tracking-[0.14em] text-sienna transition-colors hover:text-ink"
+        >
+          Clear filters
+        </button>
+      )}
+
+      {clueFiltersOpen && (
+        <div className="w-full space-y-4 border-t border-dashed border-line pt-4">
+          <div className="flex flex-wrap gap-1.5">
+            {MOODS.map((m) => {
+              const active = listFilters.mood === m
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => updateListFilter('mood', active ? '' : m)}
+                  className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                    active
+                      ? 'border-sienna/50 bg-sienna-soft text-ink'
+                      : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
+                  }`}
+                >
+                  {active && <Smile className="size-3" aria-hidden />}
+                  {moodLabel(m)}
+                </button>
+              )
+            })}
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>{clueFilterEditor('tags', userTags, 'Filter by tag…')}</div>
+            <div>{clueFilterEditor('categories', userCategories, 'Filter by category…')}</div>
+            <div>{clueFilterEditor('people', userPeople, 'Filter by people…')}</div>
+            <div>{clueFilterEditor('places', userPlaces, 'Filter by place…')}</div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+
   const memoriesView = (
     <div className="mx-auto max-w-2xl">
       <PageHeader
@@ -1821,129 +2046,94 @@ export default function Journal() {
       <div
         role="group"
         aria-label="Sort and filter memories"
-        className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-dashed border-line pt-4"
+        className="mt-6 flex w-full items-stretch justify-between gap-1.5 border-t border-dashed border-line pt-4 sm:hidden"
       >
-        <label className="flex flex-col gap-1.5">
-          <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">Sort by</span>
-          <select
-            value={listFilters.field}
-            onChange={(e) => updateListFilter('field', e.target.value)}
-            className={filterControlClass}
-          >
-            <option value="eventDate">Event date</option>
-            <option value="createdAt">Date created</option>
-            <option value="updatedAt">Last edited</option>
-            <option value="eventTime">Event time</option>
-          </select>
-        </label>
+        <button
+          type="button"
+          onClick={() => setMobileSheet('sort')}
+          className={`flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-soft border px-1 py-2 transition-colors ${
+            sortActive
+              ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
+              : 'border-line-strong bg-surface text-ink-soft'
+          }`}
+        >
+          <ArrowUpDown className="size-4 shrink-0" aria-hidden />
+          <span className="flex items-center gap-1 text-xs leading-none">
+            Sort
+            {sortActive && <span className="size-1.5 rounded-full bg-accent" aria-hidden />}
+          </span>
+        </button>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">Order</span>
-          <select
-            value={listFilters.order}
-            onChange={(e) => updateListFilter('order', e.target.value)}
-            className={filterControlClass}
-          >
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
-          </select>
-        </label>
+        <button
+          type="button"
+          onClick={() => setMobileSheet('filters')}
+          className={`flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-soft border px-1 py-2 transition-colors ${
+            activeFilterCount > 0
+              ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
+              : 'border-line-strong bg-surface text-ink-soft'
+          }`}
+        >
+          <SlidersHorizontal className="size-4 shrink-0" aria-hidden />
+          <span className="flex items-center gap-1 text-xs leading-none">
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium leading-none text-accent">
+                {activeFilterCount}
+              </span>
+            )}
+          </span>
+        </button>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">From</span>
-          <input
-            type="date"
-            value={listFilters.from}
-            onChange={(e) => updateListFilter('from', e.target.value)}
-            className={filterControlClass}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">To</span>
-          <input
-            type="date"
-            value={listFilters.to}
-            onChange={(e) => updateListFilter('to', e.target.value)}
-            className={filterControlClass}
-          />
-        </label>
+        <button
+          type="button"
+          onClick={() => setMobileSheet('clues')}
+          aria-pressed={hasClueFilters}
+          className={`flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-soft border px-1 py-2 transition-colors ${
+            hasClueFilters
+              ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
+              : 'border-line-strong bg-surface text-ink-soft'
+          }`}
+        >
+          <ListFilter className="size-4 shrink-0" aria-hidden />
+          <span className="flex items-center gap-1 text-xs leading-none">
+            Clues
+            {hasClueFilters && <span className="size-1.5 rounded-full bg-accent" aria-hidden />}
+          </span>
+        </button>
 
         <button
           type="button"
           onClick={() => updateListFilter('favoritesOnly', !listFilters.favoritesOnly)}
           aria-pressed={listFilters.favoritesOnly}
-          className={`flex items-center gap-1.5 rounded-soft border px-3 py-2 text-sm transition-colors ${
+          aria-label="Favorites only"
+          title="Favorites only"
+          className={`flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-soft border px-1 py-2 transition-colors ${
             listFilters.favoritesOnly
               ? 'border-sienna/50 bg-sienna-soft text-ink'
-              : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
+              : 'border-line-strong bg-surface text-ink-soft'
           }`}
         >
-          <Heart className={`size-4 ${listFilters.favoritesOnly ? 'fill-current text-sienna' : ''}`} aria-hidden />
-          Favorites only
+          <Heart className={`size-4 shrink-0 ${listFilters.favoritesOnly ? 'fill-current text-sienna' : ''}`} aria-hidden />
+          <span className="text-xs leading-none max-[399px]:hidden">Favorites</span>
         </button>
+      </div>
 
-        <button
-          type="button"
-          onClick={() => setClueFiltersOpen((o) => !o)}
-          aria-pressed={clueFiltersOpen || hasClueFilters}
-          aria-expanded={clueFiltersOpen}
-          className={`flex items-center gap-1.5 rounded-soft border px-3 py-2 text-sm transition-colors ${
-            hasClueFilters
-              ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
-              : clueFiltersOpen
-                ? 'border-accent/50 bg-accent-soft text-ink'
-                : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
-          }`}
-        >
-          <SlidersHorizontal className="size-4" aria-hidden />
-          Clues
-          {hasClueFilters && (
-            <span className="ml-0.5 size-1.5 rounded-full bg-accent" aria-hidden />
-          )}
-        </button>
+      {/* Tablet (640–1023px): same controls, roomier touch targets, inline. */}
+      <div
+        role="group"
+        aria-label="Sort and filter memories"
+        className="mt-6 hidden flex-wrap items-end gap-x-5 gap-y-4 border-t border-dashed border-line pt-5 sm:flex lg:hidden"
+      >
+        {filterControls(tabletControlClass, 'min-h-11 px-4 py-3 text-base')}
+      </div>
 
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={resetListFilters}
-            className="font-plxmono text-[10px] uppercase tracking-[0.14em] text-sienna transition-colors hover:text-ink"
-          >
-            Clear filters
-          </button>
-        )}
-
-        {clueFiltersOpen && (
-          <div className="w-full space-y-4 border-t border-dashed border-line pt-4">
-            <div className="flex flex-wrap gap-1.5">
-              {MOODS.map((m) => {
-                const active = listFilters.mood === m
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => updateListFilter('mood', active ? '' : m)}
-                    className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                      active
-                        ? 'border-sienna/50 bg-sienna-soft text-ink'
-                        : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
-                    }`}
-                  >
-                    {active && <Smile className="size-3" aria-hidden />}
-                    {moodLabel(m)}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>{clueFilterEditor('tags', userTags, 'Filter by tag…')}</div>
-              <div>{clueFilterEditor('categories', userCategories, 'Filter by category…')}</div>
-              <div>{clueFilterEditor('people', userPeople, 'Filter by people…')}</div>
-              <div>{clueFilterEditor('places', userPlaces, 'Filter by place…')}</div>
-            </div>
-          </div>
-        )}
+      {/* Desktop (≥1024px): original archive controls. */}
+      <div
+        role="group"
+        aria-label="Sort and filter memories"
+        className="mt-6 hidden flex-wrap items-end gap-x-4 gap-y-3 border-t border-dashed border-line pt-4 lg:flex"
+      >
+        {filterControls(filterControlClass, 'px-3 py-2 text-sm')}
       </div>
 
       {archived.length > 0 && (
@@ -1988,12 +2178,12 @@ export default function Journal() {
         })() : (
           <div className="py-14 text-center">
             <h2 className="font-hand text-3xl font-medium leading-tight text-ink">
-              {hasActiveFilters
+              {hasFilterCriteria
                 ? (hasClueFilters ? 'No clues to match.' : (listFilters.favoritesOnly ? 'No favorites yet.' : 'No matches.'))
                 : 'Nothing here yet.'}
             </h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-soft">
-              {hasActiveFilters
+              {hasFilterCriteria
                 ? (hasClueFilters
                     ? 'No memory carries every clue you asked for. Remove a clue or choose another mood to widen the list.'
                     : (listFilters.favoritesOnly
@@ -2001,6 +2191,13 @@ export default function Journal() {
                         : 'No memories match these filters. Adjust or clear them to widen the list.'))
                 : 'The first page of your book is still blank. Write a memory and it will live here.'}
             </p>
+            {hasFilterCriteria && (
+              <div className="mt-5">
+                <Button variant="outline" size="sm" onClick={resetAllCriteria}>
+                  Reset all
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -2012,6 +2209,169 @@ export default function Journal() {
           </div>
         )}
       </div>
+
+      {mobileSheet === 'sort' && (
+        <MobileSheet title="Sort & order" onClose={() => setMobileSheet(null)}>
+          <div>
+            <p className="mb-2 font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">Sort by</p>
+            <div className="space-y-1.5">
+              {SORT_OPTIONS.map((o) => {
+                const active = listFilters.field === o.value
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateListFilter('field', o.value)}
+                    className={`flex min-h-12 w-full items-center justify-between gap-3 rounded-soft border px-4 py-3 text-left text-base transition-colors ${
+                      active
+                        ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
+                        : 'border-line-strong bg-surface text-ink-soft'
+                    }`}
+                  >
+                    <span>{o.label}</span>
+                    {active ? (
+                      <Check className="size-4 shrink-0 text-accent" aria-hidden />
+                    ) : (
+                      <span className="size-4 shrink-0" aria-hidden />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">Order</p>
+            <div className="space-y-1.5">
+              {ORDER_OPTIONS.map((o) => {
+                const active = listFilters.order === o.value
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateListFilter('order', o.value)}
+                    className={`flex min-h-12 w-full items-center justify-between gap-3 rounded-soft border px-4 py-3 text-left text-base transition-colors ${
+                      active
+                        ? 'border-accent/60 bg-accent-soft text-ink ring-1 ring-accent/40'
+                        : 'border-line-strong bg-surface text-ink-soft'
+                    }`}
+                  >
+                    <span>{o.label}</span>
+                    {active ? (
+                      <Check className="size-4 shrink-0 text-accent" aria-hidden />
+                    ) : (
+                      <span className="size-4 shrink-0" aria-hidden />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {sortActive && (
+            <div className="flex justify-center border-t border-dashed border-line pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  updateListFilter('field', 'eventDate')
+                  updateListFilter('order', 'desc')
+                }}
+                className="font-plxmono text-[10px] uppercase tracking-[0.14em] text-sienna transition-colors hover:text-ink"
+              >
+                Clear sorting
+              </button>
+            </div>
+          )}
+        </MobileSheet>
+      )}
+
+      {mobileSheet === 'filters' && (
+        <MobileSheet title="Filters" onClose={() => setMobileSheet(null)}>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">From</span>
+            <input
+              type="date"
+              value={listFilters.from}
+              onChange={(e) => updateListFilter('from', e.target.value)}
+              className={sheetControlClass}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="font-plxmono text-[10px] uppercase tracking-[0.16em] text-ink-faint">To</span>
+            <input
+              type="date"
+              value={listFilters.to}
+              onChange={(e) => updateListFilter('to', e.target.value)}
+              className={sheetControlClass}
+            />
+          </label>
+
+          {(listFilters.from || listFilters.to) && (
+            <div className="flex justify-center border-t border-dashed border-line pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  updateListFilter('from', '')
+                  updateListFilter('to', '')
+                }}
+                className="font-plxmono text-[10px] uppercase tracking-[0.14em] text-sienna transition-colors hover:text-ink"
+              >
+                Clear dates
+              </button>
+            </div>
+          )}
+        </MobileSheet>
+      )}
+
+      {mobileSheet === 'clues' && (
+        <MobileSheet title="Clues" onClose={() => setMobileSheet(null)}>
+          <div className="flex flex-wrap gap-1.5">
+            {MOODS.map((m) => {
+              const active = listFilters.mood === m
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => updateListFilter('mood', active ? '' : m)}
+                  className={`flex min-h-11 items-center gap-1 rounded-full border px-3 py-2 text-sm transition-colors ${
+                    active
+                      ? 'border-sienna/50 bg-sienna-soft text-ink'
+                      : 'border-line-strong bg-surface text-ink-soft'
+                  }`}
+                >
+                  {active && <Smile className="size-3.5" aria-hidden />}
+                  {moodLabel(m)}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="space-y-3 border-t border-dashed border-line pt-4">
+            <div>{clueFilterEditor('tags', userTags, 'Filter by tag…')}</div>
+            <div>{clueFilterEditor('categories', userCategories, 'Filter by category…')}</div>
+            <div>{clueFilterEditor('people', userPeople, 'Filter by people…')}</div>
+            <div>{clueFilterEditor('places', userPlaces, 'Filter by place…')}</div>
+          </div>
+
+          {hasClueFilters && (
+            <div className="flex justify-center border-t border-dashed border-line pt-4">
+              <button
+                type="button"
+                onClick={() =>
+                  setListFilters((f) => ({ ...f, mood: '', tags: [], categories: [], people: [], places: [] }))
+                }
+                className="font-plxmono text-[10px] uppercase tracking-[0.14em] text-sienna transition-colors hover:text-ink"
+              >
+                Clear clues
+              </button>
+            </div>
+          )}
+        </MobileSheet>
+      )}
     </div>
   )
 
