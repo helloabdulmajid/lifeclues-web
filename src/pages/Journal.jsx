@@ -82,7 +82,7 @@ const filterControlClass =
 // Mobile bottom-sheet controls: bigger touch targets, 16px text so iOS
 // doesn't zoom the field on focus.
 const sheetControlClass =
-  'rounded-soft border border-line-strong bg-surface px-3 py-3 text-base text-ink transition-colors focus:outline-2 focus:outline-offset-1 focus:border-accent focus:outline-accent'
+  'w-full rounded-soft border border-line-strong bg-surface px-3 py-3 text-base text-ink transition-colors focus:outline-2 focus:outline-offset-1 focus:border-accent focus:outline-accent'
 
 // Tablet: same controls as desktop but with comfortable touch sizing —
 // no bottom sheets needed at this width.
